@@ -6,7 +6,7 @@ This is a OpenMP C++ and CUDA GPU implementation of Third-Order Edge Detection (
 The matlab code of the paper can be found in Yuliang's [github page](https://github.com/yuliangguo/Differential_Geometry_in_Edge_Detection).
 
 ## 0. Updates
-> Jul. 23, 2023: The curvel formation code is also included in thie repo for completeness. It only accepts double precision third-order edges for now. Single precision will be made available for curvel formation in the near future.
+Jul. 23, 2023: The curvel formation code is also included in thie repo for completeness. It only accepts double precision third-order edges for now. Single precision will be made available for curvel formation in the near future.
 
 ## 1. Dependencies
 The code has been tested in Linux-based system with the following versions of dependencies: <br /> 
