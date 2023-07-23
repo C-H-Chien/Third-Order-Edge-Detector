@@ -1,17 +1,15 @@
 # Third-Order Edge Detection
 
 This is a OpenMP C++ and CUDA GPU implementation of Third-Order Edge Detection (TOED) from the paper: <br /> 
-Kimia, Benjamin B., Xiaoyan Li, Yuliang Guo, and Amir Tamrakar. <br />
-"Differential geometry in edge detection: accurate estimation of position, orientation and curvature." <br />
-IEEE transactions on pattern analysis and machine intelligence 41, no. 7 (2018): 1573-1586. <br />
+``Kimia, Benjamin B., Xiaoyan Li, Yuliang Guo, and Amir Tamrakar. "Differential geometry in edge detection: accurate estimation of position, orientation and curvature." IEEE transactions on pattern analysis and machine intelligence 41, no. 7 (2018): 1573-1586.`` <br />
 
-The matlab code of the paper can be found in Yulian's [github page](https://github.com/yuliangguo/Differential_Geometry_in_Edge_Detection).
+The matlab code of the paper can be found in Yuliang's [github page](https://github.com/yuliangguo/Differential_Geometry_in_Edge_Detection).
 
 ## 1. Dependencies
 The code has been tested in Linux-based system with the following versions of dependencies: <br /> 
 (1) g++ version 10.2 or higher <br />
 (2) cuda/11.1.1 or higher <br />
-Other system or lower version of gcc might work but not tested them yet. Cuda version depends on the GPU. Please have it checked to use the correct cuda version.
+Other system or lower version of gcc might work but not tested yet. Cuda version depends on the GPU. Please have it checked to use the correct cuda version.
 
 ## 2. Run the code
 Under the repo directory, simply do
@@ -45,7 +43,7 @@ GPU: NVIDIA QuadroRTX 6000 <br />
 - GPU NMS time =   0.2988 ms <br /> <br />
 
 **Single Precision Test**: <br />
- ==> CPU Test (OpenMP 4 threads)  
+ ==> CPU Test (OpenMP 4 threads)
 ============================================= <br />
 - Time of image convolution (OpenMP): 257.492 (ms) <br />
 - Time of NMS (OpenMP): 2.32577 (ms) <br /> <br />
