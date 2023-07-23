@@ -2,8 +2,12 @@
 #define INDICES_HPP
 // macros for flexible axis
 
-// Third-Order Edge Extraction Enabler
-#define ThirdOrderEdgeDetector              (1)
+// Enable Curvel Formation (only viable for double precision)
+#define CurvelFormation                     (0)
+
+//> Some settings
+#define Use_Double_Precision                (1)
+#define Use_Single_Precision                (1)
 
 // Write Data to File Enabler
 #define WriteDataToFile                     (0)
@@ -17,6 +21,7 @@
 
 #define subpix_pos_x_map(i,j)                 subpix_pos_x_map[(i) * interp_img_width + (j)]
 #define subpix_pos_y_map(i,j)                 subpix_pos_y_map[(i) * interp_img_width + (j)]
+#define subpix_grad_mag_map(i,j)           subpix_grad_mag_map[(i) * interp_img_width + (j)]
 #define subpix_edge_pts_final(i,j)       subpix_edge_pts_final[(i) * num_of_edge_data + (j)]
 
 // gpu
@@ -28,6 +33,9 @@
 
 #define dev_subpix_pos_x_map(i,j)         dev_subpix_pos_x_map[(i) * interp_img_width + (j)]
 #define dev_subpix_pos_y_map(i,j)         dev_subpix_pos_y_map[(i) * interp_img_width + (j)]
+
+// curvelet
+#define TOED_edges(i, j)                 TOED_edges[(i) * 4 + (j)]
 
 
 

@@ -42,6 +42,7 @@ ThirdOrderEdgeDetectionCPU<T>::ThirdOrderEdgeDetectionCPU(int H, int W, int sigm
     // -- subpixel position map --
     subpix_pos_x_map        = new T[interp_img_height*interp_img_width];
     subpix_pos_y_map        = new T[interp_img_height*interp_img_width];
+    subpix_grad_mag_map     = new T[interp_img_height*interp_img_width];
 
     // -- number of data for each edge: subpix x and y, orientation, TO_grad_mag --
     num_of_edge_data = 4;
@@ -55,14 +56,14 @@ template<typename T>
 void ThirdOrderEdgeDetectionCPU<T>::preprocessing(std::ifstream& scan_infile) {
     
     // -- input img initialization --
-    for (int i = 0; i < img_height; i++) {
+    /*for (int i = 0; i < img_height; i++) {
         for (int j = 0; j < img_width; j++) {
             img(i, j) = (int)scan_infile.get();
         }
-    }
+    }*/
 
     // -- or, read a gray image from file directly --
-    //read_array_from_file("img_matlab.txt", img, img_height, img_width);
+    read_array_from_file("img_matlab.txt", img, img_height, img_width);
 
     // -- interpolated img initialization --
     for (int i = 0; i < interp_img_height; i++) {
@@ -74,10 +75,11 @@ void ThirdOrderEdgeDetectionCPU<T>::preprocessing(std::ifstream& scan_infile) {
 
             subpix_pos_x_map(i, j)       = 0;
             subpix_pos_y_map(i, j)       = 0;
+            subpix_grad_mag_map(i, j)    = 0;
         }
     }
 
-    for (int i = 0; i < img_height*img_width; i++) {
+    for (int i = 0; i < interp_img_height*interp_img_width; i++) {
         for (int j = 0; j < num_of_edge_data; j++) {
             subpix_edge_pts_final(i, j)  = 0;
         }
@@ -336,7 +338,7 @@ void ThirdOrderEdgeDetectionCPU<T>::convolve_img()
 //     Advances in Image Processing, Multimedia and Machine Vis., Berlin, Germany:Springer, 1996, pp. 385–404.
 // ====================================================================================================================
 template<typename T>
-void ThirdOrderEdgeDetectionCPU<T>::non_maximum_suppresion()
+int ThirdOrderEdgeDetectionCPU<T>::non_maximum_suppresion(T* TOED_edges)
 {
     /*T norm_dir_x, norm_dir_y;
     T slope, fp, fm;
@@ -449,7 +451,7 @@ void ThirdOrderEdgeDetectionCPU<T>::non_maximum_suppresion()
 
                         // TODO:
                         // -- store gradient magnitude of subpixel edge in the map --
-                        //subpix_grad_mag_map(i, j) = subpix_grad_mag;
+                        subpix_grad_mag_map(i, j) = subpix_grad_mag;
                     }
                 }
             }
@@ -473,12 +475,19 @@ void ThirdOrderEdgeDetectionCPU<T>::non_maximum_suppresion()
                 // -- store all necessary information of final edges --
                 // -- 1) subpixel location x --
                 subpix_edge_pts_final(edge_pt_list_idx, 0) = (subpix_pos_x_map(i, j)-1) / 2;
+                TOED_edges(edge_pt_list_idx, 0) = (subpix_pos_x_map(i, j)-1) / 2;
 
                 // -- 2) subpixel location y --
                 subpix_edge_pts_final(edge_pt_list_idx, 1) = (subpix_pos_y_map(i, j)-1) / 2;
+                TOED_edges(edge_pt_list_idx, 1) = (subpix_pos_y_map(i, j)-1) / 2;
 
                 // -- 3) orientation of subpixel --
                 subpix_edge_pts_final(edge_pt_list_idx, 2) = I_orient(i, j);
+                TOED_edges(edge_pt_list_idx, 2) = I_orient(i, j);
+
+                // -- 4) subpixel gradient magnitude --
+                subpix_edge_pts_final(edge_pt_list_idx, 3) = subpix_grad_mag_map(i, j);
+                TOED_edges(edge_pt_list_idx, 3) = subpix_grad_mag_map(i, j);
 
                 // -- 5) add up the edge point list index --
                 edge_pt_list_idx++;
@@ -489,9 +498,11 @@ void ThirdOrderEdgeDetectionCPU<T>::non_maximum_suppresion()
         }
     }
 
-    #if WriteDataToFile
+    //#if WriteDataToFile
     write_array_to_file("data_final_output_cpu.txt", subpix_edge_pts_final, edge_pt_list_idx, num_of_edge_data);
-    #endif
+    //#endif
+
+    return edge_pt_list_idx;
 }
 
 // ===================================== Write data to file for debugging =======================================
@@ -566,6 +577,7 @@ ThirdOrderEdgeDetectionCPU<T>::~ThirdOrderEdgeDetectionCPU () {
 
     delete[] subpix_pos_x_map;
     delete[] subpix_pos_y_map;
+    delete[] subpix_grad_mag_map;
 
     delete[] subpix_edge_pts_final;
 }
