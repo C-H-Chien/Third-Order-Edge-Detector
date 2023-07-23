@@ -5,6 +5,9 @@ This is a OpenMP C++ and CUDA GPU implementation of Third-Order Edge Detection (
 
 The matlab code of the paper can be found in Yuliang's [github page](https://github.com/yuliangguo/Differential_Geometry_in_Edge_Detection).
 
+## 0. Updates
+> Jul. 23, 2023: The curvel formation code is also included in thie repo for completeness. It only accepts double precision third-order edges for now. Single precision will be made available for curvel formation in the near future.
+
 ## 1. Dependencies
 The code has been tested in Linux-based system with the following versions of dependencies: <br /> 
 (1) g++ version 10.2 or higher <br />
@@ -43,7 +46,7 @@ GPU: NVIDIA QuadroRTX 6000 <br />
 - GPU NMS time =   0.2988 ms <br /> <br />
 
 **Single Precision Test**: <br />
- ==> CPU Test (OpenMP 4 threads)
+ ==> CPU Test (OpenMP 4 threads) <br />
 ============================================= <br />
 - Time of image convolution (OpenMP): 257.492 (ms) <br />
 - Time of NMS (OpenMP): 2.32577 (ms) <br /> <br />
@@ -53,3 +56,4 @@ GPU: NVIDIA QuadroRTX 6000 <br />
 - GPU Convolution time =   0.7848 ms <br />
 - GPU NMS time =   0.2951 ms <br />
 
+Note that the above timings could change according to the input image size, the power of CPU/GPU.
