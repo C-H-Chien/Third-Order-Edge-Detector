@@ -48,6 +48,7 @@ class ThirdOrderEdgeDetectionCPU {
 
     // -- member functions --
     void preprocessing(std::ifstream& scan_infile);
+    void preprocessing(cv::Mat image);
     void convolve_img();
     int non_maximum_suppresion(T* TOED_edges);
 
