@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string.h>
 #include <vector>
+#include <opencv2/opencv.hpp>
 
 #include "indices.hpp"
 #include <omp.h>
@@ -53,17 +54,17 @@ ThirdOrderEdgeDetectionCPU<T>::ThirdOrderEdgeDetectionCPU(int H, int W, int sigm
 // Initialize 2d arrays
 // ==================================================================
 template<typename T>
-void ThirdOrderEdgeDetectionCPU<T>::preprocessing(std::ifstream& scan_infile) {
+void ThirdOrderEdgeDetectionCPU<T>::preprocessing(cv::Mat image) {
     
     // -- input img initialization --
-    /*for (int i = 0; i < img_height; i++) {
+    for (int i = 0; i < img_height; i++) {
         for (int j = 0; j < img_width; j++) {
-            img(i, j) = (int)scan_infile.get();
+            // img(i, j) = (int)scan_infile.get();
+            img(i, j) = (double)image.at<uchar>(i, j);
         }
-    }*/
+    }
 
-    // -- or, read a gray image from file directly --
-    read_array_from_file("img_matlab.txt", img, img_height, img_width);
+    std::cout << img(0,0) << "\t" << img(0,1) << "\t" << img(0,2) << std::endl;
 
     // -- interpolated img initialization --
     for (int i = 0; i < interp_img_height; i++) {
@@ -514,7 +515,7 @@ void ThirdOrderEdgeDetectionCPU<T>::write_array_to_file(std::string filename, T 
 #define wr_data(i, j) wr_data[(i) * second_dim + (j)]
 
     std::cout<<"writing data to a file "<<filename<<" ..."<<std::endl;
-    std::string out_file_name = "./test_files/";
+    std::string out_file_name = "./output_files/";
     out_file_name.append(filename);
 	std::ofstream out_file;
     out_file.open(out_file_name);
