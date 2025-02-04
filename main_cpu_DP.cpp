@@ -14,9 +14,12 @@
 #include <string.h>
 #include <vector>
 #include <stdint.h>
-#include <opencv2/opencv.hpp>
 
 #include "indices.hpp"
+
+#if OPENCV_SUPPORT
+#include <opencv2/opencv.hpp>
+#endif
 
 // cpu
 #include "cpu_toed.hpp"
@@ -47,17 +50,23 @@ int main(int argc, char **argv)
 	}
 
     // Load images
+    int height, width;
+#if OPENCV_SUPPORT
     cv::Mat img = cv::imread(filename, cv::IMREAD_GRAYSCALE);
-
     if ( img.empty() ) {
         std::cerr << "Error: Failed to load image " << filename << std::endl;
         return 0;
     }
+    height = img.rows;
+    width  = img.cols;
+#else
+    char type[10];
+	int intensity;
+	// -- Storing header information and copying into the new ouput images --
+	infile >> type >> width >> height >> intensity;
+#endif
 
-    int height = img.rows;
-    int width  = img.cols;
-
-	// read number of threads if passed through command line
+	//> Read number of threads if passed through command line. It is 1 by default.
 	int nthreads = 1;
 	if(argc > 2) {
 	    nthreads = atoi( argv[2] );
@@ -79,7 +88,11 @@ int main(int argc, char **argv)
     printf("============================================\n");
     
     ThirdOrderEdgeDetectionCPU<double> toedCPU_fp64(height, width, sigma, kernel_size, nthreads);
+#if OPENCV_SUPPORT
     toedCPU_fp64.preprocessing(img);
+#else
+    toedCPU_fp64.preprocessing(infile);
+#endif
     toedCPU_fp64.convolve_img();
     edge_num = toedCPU_fp64.non_maximum_suppresion(TOED_edges);
 

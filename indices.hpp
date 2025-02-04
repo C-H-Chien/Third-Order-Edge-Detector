@@ -2,6 +2,8 @@
 #define INDICES_HPP
 // macros for flexible axis
 
+#define OPENCV_SUPPORT                      (true)
+
 // Enable Curvel Formation (only viable for double precision)
 #define CurvelFormation                     (0)
 

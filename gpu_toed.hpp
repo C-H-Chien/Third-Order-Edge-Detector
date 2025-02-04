@@ -13,6 +13,10 @@
 #include "gpu_kernels.hpp"
 #include "indices.hpp"
 
+#if OPENCV_SUPPORT
+#include <opencv2/opencv.hpp>
+#endif
+
 template<typename T>
 class ThirdOrderEdgeDetectionGPU {
     int device_id;
@@ -50,6 +54,9 @@ class ThirdOrderEdgeDetectionGPU {
     ~ThirdOrderEdgeDetectionGPU();
 
     // -- member functions --
+#if OPENCV_SUPPORT
+    void preprocessing(cv::Mat image);
+#endif
     void preprocessing(std::ifstream& scan_infile);
     void convolve_img();
     void non_maximum_suppresion();
@@ -114,7 +121,56 @@ ThirdOrderEdgeDetectionGPU<T>::ThirdOrderEdgeDetectionGPU (int device, int H, in
 }
 
 // ========================= preprocessing ==========================
-// Initialize 2d arrays
+// Initialize 2d arrays, with OpenCV supported
+// ==================================================================
+#if OPENCV_SUPPORT
+template<typename T>
+void ThirdOrderEdgeDetectionGPU<T>::preprocessing(cv::Mat image) {
+    
+    // -- input img initialization --
+    for (int i = 0; i < img_height; i++) {
+        for (int j = 0; j < img_width; j++) {
+            img(i, j) = (int)image.at<uchar>(i, j);
+        }
+    }
+
+    // -- or, read a gray image from file directly --
+    //read_array_from_file("img_matlab.txt", img, img_height, img_width);
+
+    // -- interpolated img initialization --
+    for (int i = 0; i < interp_img_height; i++) {
+        for (int j = 0; j < interp_img_width; j++) {
+            Ix(i, j)         = 0;
+            Iy(i, j)         = 0;
+            I_grad_mag(i,j)  = 0;
+            I_orient(i,j)    = 0;  
+
+            subpix_pos_x_map(i, j)       = 0;
+            subpix_pos_y_map(i, j)       = 0;
+        }
+    }
+
+    // TODO: push subpixel positions and orientation to the subpix_edge_pts_final list
+    /*for (int i = 0; i < img_height*img_width; i++) {
+        for (int j = 0; j < num_of_edge_data; j++) {
+            subpix_edge_pts_final(i, j)  = 0;
+        }
+    }*/
+
+    // --------------------------------------------------------------------------------------
+    // gpu
+    cudacheck( cudaMemset(dev_Ix,                     0, interp_img_height*interp_img_width*sizeof(T)) );
+    cudacheck( cudaMemset(dev_Iy,                     0, interp_img_height*interp_img_width*sizeof(T)) );
+    cudacheck( cudaMemset(dev_I_grad_mag,             0, interp_img_height*interp_img_width*sizeof(T)) );
+    cudacheck( cudaMemset(dev_I_orient,               0, interp_img_height*interp_img_width*sizeof(T)) );
+
+    cudacheck( cudaMemset(dev_subpix_pos_y_map,       0, interp_img_height*interp_img_width*sizeof(T)) );
+    cudacheck( cudaMemset(dev_subpix_pos_x_map,       0, interp_img_height*interp_img_width*sizeof(T)) );
+}
+#endif
+
+// ========================= preprocessing ==========================
+// Initialize 2d arrays, without OpenCV supported
 // ==================================================================
 template<typename T>
 void ThirdOrderEdgeDetectionGPU<T>::preprocessing(std::ifstream& scan_infile) {

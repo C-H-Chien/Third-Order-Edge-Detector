@@ -13,6 +13,10 @@
 
 #include "indices.hpp"
 
+#if OPENCV_SUPPORT
+#include <opencv2/opencv.hpp>
+#endif
+
 // cpu
 #include "cpu_toed.hpp"
 #include "cpu_toed.cpp"
@@ -50,10 +54,21 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	char type[10];
-	int height, width, intensity;
+    int height, width;
+#if OPENCV_SUPPORT
+    cv::Mat img = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+    if ( img.empty() ) {
+        std::cerr << "Error: Failed to load image " << filename << std::endl;
+        return 0;
+    }
+    height = img.rows;
+    width  = img.cols;
+#else
+    char type[10];
+	int intensity;
 	// -- Storing header information and copying into the new ouput images --
 	infile >> type >> width >> height >> intensity;
+#endif
 
 	// read number of threads if passed through command line
 	int nthreads = 1;
@@ -90,19 +105,30 @@ int main(int argc, char **argv)
         printf("============================================\n");
         
         ThirdOrderEdgeDetectionCPU<double> toedCPU_fp64(height, width, sigma, kernel_size, nthreads);
+#if OPENCV_SUPPORT
+        toedCPU_fp64.preprocessing(img);
+#else
         toedCPU_fp64.preprocessing(infile);
+#endif
         toedCPU_fp64.convolve_img();
         edge_num = toedCPU_fp64.non_maximum_suppresion(TOED_edges);
 
         // go back to the beginning of the file
+#if OPENCV_SUPPORT
+#else
         infile.clear();
         infile.seekg(0);
         infile >> type >> width >> height >> intensity;
+#endif
 
         printf("\n ==> GPU Test \n");
         printf("=============================================\n");
         ThirdOrderEdgeDetectionGPU<double> toedGPU_fp64(gpu_id, height, width, kernel_size, sigma);  // -- class constructor --
-        toedGPU_fp64.preprocessing(infile);            // -- preprocessing: array initialization --
+#if OPENCV_SUPPORT
+        toedGPU_fp64.preprocessing(img);
+#else
+        toedGPU_fp64.preprocessing(infile);
+#endif
         toedGPU_fp64.convolve_img();           // -- convolve image with Gaussian derivative filter --
         toedGPU_fp64.non_maximum_suppresion();
 
@@ -133,10 +159,13 @@ int main(int argc, char **argv)
         float *TOED_edges;
         initialize_TOED_edges<float>( TOED_edges, height, width );
 
+#if OPENCV_SUPPORT
+#else
         // go back to the beginning of the file
         infile.clear();
         infile.seekg(0);
         infile >> type >> width >> height >> intensity;
+#endif
 
         printf("############################################\n");
         printf("##         Single Precision Test          ##\n");
@@ -145,19 +174,30 @@ int main(int argc, char **argv)
         printf("=============================================\n");
         
         ThirdOrderEdgeDetectionCPU<float> toedCPU_fp32(height, width, sigma, kernel_size, nthreads);
+#if OPENCV_SUPPORT
+        toedCPU_fp32.preprocessing(img);
+#else
         toedCPU_fp32.preprocessing(infile);
+#endif
         toedCPU_fp32.convolve_img();
         edge_num = toedCPU_fp32.non_maximum_suppresion(TOED_edges);
 
+#if OPENCV_SUPPORT
+#else
         // go back to the beginning of the file
         infile.clear();
         infile.seekg(0);
         infile >> type >> width >> height >> intensity;
+#endif
 
         printf("\n ==> GPU Test \n");
         printf("=============================================\n");
         ThirdOrderEdgeDetectionGPU<float> toedGPU_fp32(gpu_id, height, width, kernel_size, sigma);  // -- class constructor --
+#if OPENCV_SUPPORT
+        toedGPU_fp32.preprocessing(img);            // -- preprocessing: array initialization --
+#else
         toedGPU_fp32.preprocessing(infile);            // -- preprocessing: array initialization --
+#endif
         toedGPU_fp32.convolve_img();           // -- convolve image with Gaussian derivative filter --
         toedGPU_fp32.non_maximum_suppresion();
 

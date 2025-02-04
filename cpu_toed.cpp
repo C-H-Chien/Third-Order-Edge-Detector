@@ -7,10 +7,13 @@
 #include <iostream>
 #include <string.h>
 #include <vector>
-#include <opencv2/opencv.hpp>
 
 #include "indices.hpp"
 #include <omp.h>
+
+#if OPENCV_SUPPORT
+#include <opencv2/opencv.hpp>
+#endif
 
 #include "cpu_toed.hpp"
 
@@ -51,20 +54,53 @@ ThirdOrderEdgeDetectionCPU<T>::ThirdOrderEdgeDetectionCPU(int H, int W, int sigm
 }
 
 // ========================= preprocessing ==========================
-// Initialize 2d arrays
+// Initialize 2d arrays, with OpenCV supported
 // ==================================================================
+#if OPENCV_SUPPORT
 template<typename T>
 void ThirdOrderEdgeDetectionCPU<T>::preprocessing(cv::Mat image) {
     
     // -- input img initialization --
     for (int i = 0; i < img_height; i++) {
         for (int j = 0; j < img_width; j++) {
-            // img(i, j) = (int)scan_infile.get();
             img(i, j) = (double)image.at<uchar>(i, j);
         }
     }
 
-    std::cout << img(0,0) << "\t" << img(0,1) << "\t" << img(0,2) << std::endl;
+    // -- interpolated img initialization --
+    for (int i = 0; i < interp_img_height; i++) {
+        for (int j = 0; j < interp_img_width; j++) {
+            Ix(i, j)         = 0;
+            Iy(i, j)         = 0;
+            I_grad_mag(i,j)  = 0;
+            I_orient(i,j)    = 0;      
+
+            subpix_pos_x_map(i, j)       = 0;
+            subpix_pos_y_map(i, j)       = 0;
+            subpix_grad_mag_map(i, j)    = 0;
+        }
+    }
+
+    for (int i = 0; i < interp_img_height*interp_img_width; i++) {
+        for (int j = 0; j < num_of_edge_data; j++) {
+            subpix_edge_pts_final(i, j)  = 0;
+        }
+    }
+}
+#endif
+
+// ========================= preprocessing ==========================
+// Initialize 2d arrays, without OpenCV supported
+// ==================================================================
+template<typename T>
+void ThirdOrderEdgeDetectionCPU<T>::preprocessing(std::ifstream& scan_infile) {
+    
+    // -- input img initialization --
+    for (int i = 0; i < img_height; i++) {
+        for (int j = 0; j < img_width; j++) {
+            img(i, j) = (int)scan_infile.get();
+        }
+    }
 
     // -- interpolated img initialization --
     for (int i = 0; i < interp_img_height; i++) {
