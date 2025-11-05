@@ -19,7 +19,6 @@
 
 // cpu
 #include "cpu_toed.hpp"
-#include "cpu_toed.cpp"
 
 // gpu
 #include "gpu_toed.hpp"
@@ -94,6 +93,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    // MARK: Double Precision
     if (Use_Double_Precision) {
         double *TOED_edges;
         initialize_TOED_edges<double>( TOED_edges, height, width );
@@ -121,40 +121,54 @@ int main(int argc, char **argv)
         infile >> type >> width >> height >> intensity;
 #endif
 
-        printf("\n ==> GPU Test \n");
-        printf("=============================================\n");
-        ThirdOrderEdgeDetectionGPU<double> toedGPU_fp64(gpu_id, height, width, kernel_size, sigma);  // -- class constructor --
-#if OPENCV_SUPPORT
-        toedGPU_fp64.preprocessing(img);
-#else
-        toedGPU_fp64.preprocessing(infile);
-#endif
-        toedGPU_fp64.convolve_img();           // -- convolve image with Gaussian derivative filter --
-        toedGPU_fp64.non_maximum_suppresion();
+//         printf("\n ==> GPU Test \n");
+//         printf("=============================================\n");
+//         ThirdOrderEdgeDetectionGPU<double> toedGPU_fp64(gpu_id, height, width, kernel_size, sigma);  // -- class constructor --
+// #if OPENCV_SUPPORT
+//         toedGPU_fp64.preprocessing(img);
+// #else
+//         toedGPU_fp64.preprocessing(infile);
+// #endif
+//         toedGPU_fp64.convolve_img();           // -- convolve image with Gaussian derivative filter --
+//         toedGPU_fp64.non_maximum_suppresion();
 
         //> Double precision allows curve formation
-        #if CurvelFormation
+#if CurvelFormation
 
-        // -- settings --
-        double nrad = 3.5;
-        double gap = 1.5;
-        double dx = 0.4;
-        double dt = 15;
-        double token_len = 1;
-        double max_k = 0.3;
-        unsigned cvlet_style = 3;
-        unsigned max_size_to_group = 7;
-        unsigned output_type = 0;
+        if (Use_Double_Precision) {
+            // -- settings --
+            double nrad = 3.5;
+            double gap = 1.5;
+            double dx = 0.4;
+            double dt = 15;
+            double token_len = 1;
+            double max_k = 0.3;
+            unsigned cvlet_style = 3;
+            unsigned max_size_to_group = 7;
+            //> when output_type is 0, output the curvelet map
+            //  when output_type is 1, output the curve fragment graph
+            //  when output_type is 2, output the poly arc map
+            unsigned output_type = 0;
 
-        curvelet_formation( height, width, TOED_edges, edge_num, 4, 
-                            nrad, gap, dx, dt, token_len, max_k, 
-                            cvlet_style, max_size_to_group, output_type);
+            //> convert degree to radian
+            dt = (dt / 180) * M_PI;
 
-        #endif
+            arrayi chain;
+            arrayd info;
+
+            curvelet_formation( chain, info, height, width, TOED_edges, edge_num, 4, 
+                                nrad, gap, dx, dt, token_len, max_k, 
+                                cvlet_style, max_size_to_group, output_type);
+
+            std::cout << "chain width and height: " << chain.w() << ", " << chain.h() << std::endl;
+            std::cout << "info width and height: " << info.w() << ", " << info.h() << std::endl;
+        }
+#endif
 
         delete[] TOED_edges;
     }
     
+    // MARK: Single Precision
     if (Use_Single_Precision) {
         float *TOED_edges;
         initialize_TOED_edges<float>( TOED_edges, height, width );

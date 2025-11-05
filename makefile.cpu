@@ -1,17 +1,23 @@
-OPENCVDIR ?= /gpfs/data/bkimia/cchien3/opencv_install_CH_test
+OPENCVDIR ?= /gpfs/data/bkimia/opencv_4.x/build_install/
 INC=-I${OPENCVDIR}/include/opencv4
 LIBDIR=-L${OPENCVDIR}/lib64
 LIB=-lopencv_core -lopencv_imgcodecs -lopencv_highgui
 OPENMP = -fopenmp
 
-toed_cpu: main_cpu_dp.o cpu_toed.o 
-	g++ ${INC} ${OPENMP} -o TOED main_cpu_dp.o cpu_toed.o ${LIBDIR} ${LIB}
+toed_cpu: main_cpu_dp.o cpu_toed.o form_curvelet_main.o
+	g++ ${INC} ${OPENMP} -o TOED main_cpu_dp.o cpu_toed.o form_curvelet_main.o ${LIBDIR} ${LIB}
 
 main_cpu_dp.o: main_cpu_DP.cpp
 	g++ ${INC} ${OPENMP} -c main_cpu_DP.cpp -O3 -o main_cpu_dp.o
 
 cpu_toed.o: cpu_toed.cpp
 	g++ ${INC} ${OPENMP} -c cpu_toed.cpp -O3 -o cpu_toed.o
+
+form_curvelet_main.o: ./curvelet/form_curvelet_main.cpp
+	g++ ${OPENMP} -c ./curvelet/form_curvelet_main.cpp -O3 -o form_curvelet_main.o
+
+#form_curvelet_main.o: ./curvelet/form_curvelet_main.cpp ./curvelet/curvelet.cpp ./curvelet/curveletmap.cpp ./curvelet/CC_curve_model_3d.cpp ./curvelet/form_curvelet_process.cpp 
+#	g++ ${OPENMP} -c ./curvelet/form_curvelet_main.cpp ./curvelet/curvelet.cpp ./curvelet/curveletmap.cpp ./curvelet/CC_curve_model_3d.cpp ./curvelet/form_curvelet_process.cpp -O3 -o form_curvelet_main.o
 
 clean:
 	rm -f toed *.o

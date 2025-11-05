@@ -17,13 +17,17 @@
 
 #include "indices.hpp"
 
+#if CurvelFormation
+#include "curvelet/Array.hpp"
+#include "curvelet/form_curvelet_main.hpp"
+#endif
+
 #if OPENCV_SUPPORT
 #include <opencv2/opencv.hpp>
 #endif
 
 // cpu
 #include "cpu_toed.hpp"
-#include "cpu_toed.cpp"
 
 template<typename T>
 void initialize_TOED_edges( T* &TOED_edges, int height, int width ) 
@@ -97,6 +101,36 @@ int main(int argc, char **argv)
     edge_num = toedCPU_fp64.non_maximum_suppresion(TOED_edges);
 
     std::cout << "Number of edges = " << edge_num << std::endl;
+
+#if CurvelFormation
+
+    // -- settings --
+    double nrad = 3.5;
+    double gap = 1.5;
+    double dx = 0.4;
+    double dt = 15;
+    double token_len = 1;
+    double max_k = 0.3;
+    unsigned cvlet_style = 3;
+    unsigned max_size_to_group = 7;
+    //> when output_type is 0, output the curvelet map
+    //  when output_type is 1, output the curve fragment graph
+    //  when output_type is 2, output the poly arc map
+    unsigned output_type = 0;
+
+    arrayi chain;
+    arrayd info;
+
+    //> convert degree to radian
+    dt = (dt / 180) * M_PI;
+
+    curvelet_formation( chain, info, height, width, TOED_edges, edge_num, 4, 
+                        nrad, gap, dx, dt, token_len, max_k, 
+                        cvlet_style, max_size_to_group, output_type);
+
+    std::cout << "chain width and height: " << chain.w() << ", " << chain.h() << std::endl;
+    std::cout << "info width and height: " << info.w() << ", " << info.h() << std::endl;
+#endif
 
     delete[] TOED_edges;
 
