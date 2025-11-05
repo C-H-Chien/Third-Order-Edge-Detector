@@ -819,7 +819,7 @@ void form_curvelet_process::get_output_arrary( arrayi &id_chain, arrayd &curvele
             break;
             
         case 1:
-            // out put the curvelet map
+            // out put the curve fragment graph
             if (h==id_chain.h() && w==id_chain.w()) {
                 _fragraph.get_output_array(id_chain,curvelet_info);
             }

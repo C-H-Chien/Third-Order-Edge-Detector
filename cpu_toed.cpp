@@ -619,4 +619,8 @@ ThirdOrderEdgeDetectionCPU<T>::~ThirdOrderEdgeDetectionCPU () {
     delete[] subpix_edge_pts_final;
 }
 
+// Explicit template instantiations
+template class ThirdOrderEdgeDetectionCPU<double>;
+template class ThirdOrderEdgeDetectionCPU<float>;
+
 #endif    // TODE_CPP

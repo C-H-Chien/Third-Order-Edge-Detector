@@ -2,10 +2,10 @@
 #define FORM_CURVELET_MAIN_CPP
 
 /*****************************************************************************
-// file: form_curvelet_mex.cxx
-// author: Xiaoyan Li
-// date: 01/19/2015
-//       An algorithm to form curvelet from input edgemap
+// file: form_curvelet_main.cpp
+// author: Chiang-Heng Chien
+// date: Jul. 23, 2023
+//       An algorithm to form curvelet from input edgemap. Edited from a matlab mex function interface.
 ******************************************************************************/
 
 // mex  form_curvelet_mex.cxx CC_curve_model_3d.cxx curvelet.cxx
@@ -42,10 +42,10 @@ Input:
  the curve fragment map. if 2, out put the poly arc map.
  *************************************************************/
 
-
 void curvelet_formation( /* OUTPUTS */
                          //double* output_info, int* output_chain,
                          //int nl, mxArray *pl[], 
+                         arrayi &chain, arrayd &info,
                          /* INPUTS */
                          int height, int width, double* TOED_edges, int edge_num, int edge_data_sz, 
                          double nrad, double gap, double dx, double dt, double token_len, double max_k, 
@@ -70,20 +70,14 @@ void curvelet_formation( /* OUTPUTS */
 
     // construct and assign the subpixel edge list
     arrayd edgeinfo; 
-    //edgeinfo._data = (double*) mxGetData(pr[0]);
     edgeinfo._data = TOED_edges;
     
-    //int h = (int) mxGetM(pr[0]); 
     int h = edge_num; 
     edgeinfo.set_h(h);
-    //int w = (int) mxGetN(pr[0]); 
     int w = edge_data_sz; 
     edgeinfo.set_w(w);
 
-    //unsigned output_type = mxGetScalar(pr[11]);
     unsigned output_type = out_type;
-    
-//    mexPrintf("inputs are passed to c\n");
     
     // assign initial settings
     //unsigned cvlet_type = mxGetScalar(pr[9]);
@@ -91,31 +85,20 @@ void curvelet_formation( /* OUTPUTS */
     unsigned max_size_to_group = group_max_sz;
     bool bCentered_grouping = cvlet_type==0 || cvlet_type==1, bBidirectional_grouping = cvlet_type==0 || cvlet_type==2;
     
-    // constructor of a set of classes
-    /*form_curvelet_process curvelet_pro(edgeinfo, unsigned(height)),unsigned(width)),
-                                       double(mxGetScalar(pr[3])), double(mxGetScalar(pr[4])),
-                                       double(mxGetScalar(pr[5])), double(mxGetScalar(pr[6])),
-                                       double(mxGetScalar(pr[7])), double(mxGetScalar(pr[8])),
-                                       max_size_to_group,
-                                       bCentered_grouping, bBidirectional_grouping);*/
-    
+    // constructor of a set of classes    
     form_curvelet_process curvelet_pro(edgeinfo, unsigned(height),unsigned(width),
                                        nrad, gap,
                                        dx, dt,
                                        token_len, max_k,
                                        max_size_to_group,
                                        bCentered_grouping, bBidirectional_grouping);
-//    mexPrintf("process is constructed\n");
     
     curvelet_pro.execute();
-//    mexPrintf("process is executed\n");
     
     // create memory for output
     unsigned out_h,out_w, info_w;
     
-    curvelet_pro.get_output_size(out_h,out_w,output_type);
-    //const mwSize ds1[2] = {mwSize(outh), mwSize(outw)};
-    //const unsigned ds1[2] = {out_h, out_w};
+    curvelet_pro.get_output_size(out_h, out_w, output_type);
 
     int *out_chain = new int[out_h * out_w];
 
@@ -125,34 +108,31 @@ void curvelet_formation( /* OUTPUTS */
         info_w = 1;
     else
         info_w = 12;
-    //const mwSize ds2[2] = {mwSize(outh), mwSize(infow)};
-    //const unsigned ds2[2] = {out_h, info_w};
 
     double *out_info = new double[out_h * info_w];
 
-    arrayi chain;
-    //pl[0] = mxCreateNumericArray(2,ds1,mxINT32_CLASS, mxREAL);
-    //chain._data = (int*) mxGetData(pl[0]);
-    chain._data = out_chain;
-    chain.set_h(out_h);
-    chain.set_w(out_w);
-    arrayd info;
+    arrayi local_chain;
+    local_chain._data = out_chain;
+    local_chain.set_h(out_h);
+    local_chain.set_w(out_w);
+    arrayd local_info;
     if (output_type!=1) {
-        //pl[1] = mxCreateNumericArray(2,ds2,mxDOUBLE_CLASS,mxREAL);
-
-        //info._data = (double*) mxGetData(pl[1]);
-        info._data = out_info;
+        local_info._data = out_info;
     }
-    info.set_h(out_h);
-    info.set_w(info_w);
-//        mexPrintf("output memories are created\n");
+    local_info.set_h(out_h);
+    local_info.set_w(info_w);
     
-    curvelet_pro.get_output_arrary( chain, info, output_type );
-//        mexPrintf("outputs are assigned\n");
+    curvelet_pro.get_output_arrary( local_chain, local_info, output_type );
+
+    // Copy local arrays to output parameters
+    chain = local_chain;
+    info = local_info;
+
+    std::cout << "info width and height: " << info.h() << ", " << info.w() << std::endl;
+
 
     delete[] out_info;
     delete[] out_chain;
-
 }
 /*
 void mexFunction( int nl, mxArray *pl[], int nr, const mxArray *pr[] )
