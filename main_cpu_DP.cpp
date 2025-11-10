@@ -111,8 +111,8 @@ int main(int argc, char **argv)
     double dt = 15;
     double token_len = 1;
     double max_k = 0.3;
-    unsigned cvlet_style = 3;
-    unsigned max_size_to_group = 7;
+    unsigned cvlet_style = 2;
+    unsigned max_size_to_group = 4;
     //> when output_type is 0, output the curvelet map
     //  when output_type is 1, output the curve fragment graph
     //  when output_type is 2, output the poly arc map
