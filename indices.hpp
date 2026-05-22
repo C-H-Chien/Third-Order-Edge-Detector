@@ -5,11 +5,11 @@
 #define OPENCV_SUPPORT                      (true)
 
 // Enable Curvel Formation (only viable for double precision)
-#define CurvelFormation                     (true)
+#define CurvelFormation                     (false)
 
 //> Some settings
-#define Use_Double_Precision                (true)
-#define Use_Single_Precision                (false)
+#define Use_Double_Precision                (false)
+#define Use_Single_Precision                (true)
 
 // Write Data to File Enabler
 #define WriteDataToFile                     (0)

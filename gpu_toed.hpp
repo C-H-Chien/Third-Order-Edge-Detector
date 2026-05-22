@@ -40,6 +40,11 @@ class ThirdOrderEdgeDetectionGPU {
     // NMS
     T *subpix_pos_x_map, *dev_subpix_pos_x_map;         // -- store x of subpixel location --
     T *subpix_pos_y_map, *dev_subpix_pos_y_map;         // -- store y of subpixel location --
+    T *subpix_grad_mag_map;
+    T *subpix_edge_pts_final;
+
+    int build_edge_list(T* TOED_edges);
+    T compute_subpix_grad_mag_at(int i, int j);
 
   public:
 
@@ -59,7 +64,7 @@ class ThirdOrderEdgeDetectionGPU {
 #endif
     void preprocessing(std::ifstream& scan_infile);
     void convolve_img();
-    void non_maximum_suppresion();
+    int non_maximum_suppresion(T* TOED_edges = nullptr);
 
     void read_array_from_file(std::string filename, T *rd_data, int first_dim, int second_dim);
     void write_array_to_file(std::string filename, T *wr_data, int first_dim, int second_dim);
@@ -90,7 +95,12 @@ ThirdOrderEdgeDetectionGPU<T>::ThirdOrderEdgeDetectionGPU (int device, int H, in
     I_orient       = new T[interp_img_height*interp_img_width]; 
 
     subpix_pos_x_map   = new T[interp_img_height*interp_img_width];
-    subpix_pos_y_map   = new T[interp_img_height*interp_img_width]; 
+    subpix_pos_y_map   = new T[interp_img_height*interp_img_width];
+    subpix_grad_mag_map = new T[interp_img_height*interp_img_width];
+
+    num_of_edge_data = 4;
+    subpix_edge_pts_final = new T[interp_img_height*interp_img_width*num_of_edge_data];
+    edge_pt_list_idx = 0;
 
     // --------------------------------------------------------------------------------
     // gpu
@@ -147,15 +157,15 @@ void ThirdOrderEdgeDetectionGPU<T>::preprocessing(cv::Mat image) {
 
             subpix_pos_x_map(i, j)       = 0;
             subpix_pos_y_map(i, j)       = 0;
+            subpix_grad_mag_map(i, j)    = 0;
         }
     }
 
-    // TODO: push subpixel positions and orientation to the subpix_edge_pts_final list
-    /*for (int i = 0; i < img_height*img_width; i++) {
+    for (int k = 0; k < interp_img_height*interp_img_width; k++) {
         for (int j = 0; j < num_of_edge_data; j++) {
-            subpix_edge_pts_final(i, j)  = 0;
+            subpix_edge_pts_final(k, j)  = 0;
         }
-    }*/
+    }
 
     // --------------------------------------------------------------------------------------
     // gpu
@@ -195,15 +205,15 @@ void ThirdOrderEdgeDetectionGPU<T>::preprocessing(std::ifstream& scan_infile) {
 
             subpix_pos_x_map(i, j)       = 0;
             subpix_pos_y_map(i, j)       = 0;
+            subpix_grad_mag_map(i, j)    = 0;
         }
     }
 
-    // TODO: push subpixel positions and orientation to the subpix_edge_pts_final list
-    /*for (int i = 0; i < img_height*img_width; i++) {
+    for (int k = 0; k < interp_img_height*interp_img_width; k++) {
         for (int j = 0; j < num_of_edge_data; j++) {
-            subpix_edge_pts_final(i, j)  = 0;
+            subpix_edge_pts_final(k, j)  = 0;
         }
-    }*/
+    }
 
     // --------------------------------------------------------------------------------------
     // gpu
@@ -214,6 +224,113 @@ void ThirdOrderEdgeDetectionGPU<T>::preprocessing(std::ifstream& scan_infile) {
 
     cudacheck( cudaMemset(dev_subpix_pos_y_map,       0, interp_img_height*interp_img_width*sizeof(T)) );
     cudacheck( cudaMemset(dev_subpix_pos_x_map,       0, interp_img_height*interp_img_width*sizeof(T)) );
+}
+
+// Parabola peak gradient magnitude at (i,j), matching CPU NMS (cpu_toed.cpp)
+template<typename T>
+T ThirdOrderEdgeDetectionGPU<T>::compute_subpix_grad_mag_at(int i, int j)
+{
+    const int sn = 1;
+    T norm_dir_x, norm_dir_y;
+    T slope, fp, fm;
+    T coeff_A, coeff_B, coeff_C, s, s_star;
+    T max_f, subpix_grad_x, subpix_grad_y;
+
+    if (I_grad_mag(i, j) <= 2)
+        return 0;
+    if ((std::abs(Ix(i, j)) < 10e-6) && (std::abs(Iy(i, j)) < 10e-6))
+        return 0;
+
+    norm_dir_x = Ix(i, j) / I_grad_mag(i, j);
+    norm_dir_y = Iy(i, j) / I_grad_mag(i, j);
+
+    if ((Ix(i, j) >= 0) && (Iy(i, j) >= 0)) {
+        if (Ix(i, j) >= Iy(i, j)) {
+            slope = norm_dir_y / norm_dir_x;
+            fp = I_grad_mag(i, j+sn) * (1-slope) + I_grad_mag(i+sn, j+sn) * slope;
+            fm = I_grad_mag(i, j-sn) * (1-slope) + I_grad_mag(i-sn, j-sn) * slope;
+        } else {
+            slope = norm_dir_x / norm_dir_y;
+            fp = I_grad_mag(i+sn, j) * (1-slope) + I_grad_mag(i+sn, j+sn) * slope;
+            fm = I_grad_mag(i-sn, j) * (1-slope) + I_grad_mag(i-sn, j-sn) * slope;
+        }
+    } else if ((Ix(i, j) < 0) && (Iy(i, j) >= 0)) {
+        if (std::abs(Ix(i, j)) < Iy(i, j)) {
+            slope = -norm_dir_x / norm_dir_y;
+            fp = I_grad_mag(i+sn, j) * (1-slope) + I_grad_mag(i+sn, j-sn) * slope;
+            fm = I_grad_mag(i-sn, j) * (1-slope) + I_grad_mag(i-sn, j+sn) * slope;
+        } else {
+            slope = -norm_dir_y / norm_dir_x;
+            fp = I_grad_mag(i, j-sn) * (1-slope) + I_grad_mag(i+sn, j-sn) * slope;
+            fm = I_grad_mag(i, j+sn) * (1-slope) + I_grad_mag(i-sn, j+sn) * slope;
+        }
+    } else if ((Ix(i, j) < 0) && (Iy(i, j) < 0)) {
+        if (std::abs(Ix(i, j)) >= std::abs(Iy(i, j))) {
+            slope = norm_dir_y / norm_dir_x;
+            fp = I_grad_mag(i, j-sn) * (1-slope) + I_grad_mag(i-sn, j-sn) * slope;
+            fm = I_grad_mag(i, j+sn) * (1-slope) + I_grad_mag(i+sn, j+sn) * slope;
+        } else {
+            slope = norm_dir_x / norm_dir_y;
+            fp = I_grad_mag(i-sn, j) * (1-slope) + I_grad_mag(i-sn, j-sn) * slope;
+            fm = I_grad_mag(i+sn, j) * (1-slope) + I_grad_mag(i+sn, j+sn) * slope;
+        }
+    } else if ((Ix(i, j) >= 0) && (Iy(i, j) < 0)) {
+        if (Ix(i, j) < std::abs(Iy(i, j))) {
+            slope = -norm_dir_x / norm_dir_y;
+            fp = I_grad_mag(i-sn, j) * (1-slope) + I_grad_mag(i-sn, j+sn) * slope;
+            fm = I_grad_mag(i+sn, j) * (1-slope) + I_grad_mag(i+sn, j-sn) * slope;
+        } else {
+            slope = -norm_dir_y / norm_dir_x;
+            fp = I_grad_mag(i, j+sn) * (1-slope) + I_grad_mag(i-sn, j+sn) * slope;
+            fm = I_grad_mag(i, j-sn) * (1-slope) + I_grad_mag(i+sn, j-sn) * slope;
+        }
+    }
+
+    s = std::sqrt(1 + slope*slope);
+    if (!((I_grad_mag(i, j) >  fm && I_grad_mag(i, j) > fp) ||
+          (I_grad_mag(i, j) >  fm && I_grad_mag(i, j) >= fp) ||
+          (I_grad_mag(i, j) >= fm && I_grad_mag(i, j) >  fp)))
+        return 0;
+
+    coeff_A = (fm + fp - 2*I_grad_mag(i, j)) / (2*s*s);
+    coeff_B = (fp - fm) / (2*s);
+    coeff_C = I_grad_mag(i, j);
+    s_star = -coeff_B / (2*coeff_A);
+    max_f = coeff_A*s_star*s_star + coeff_B*s_star + coeff_C;
+
+    if (std::abs(s_star) > std::sqrt(2.0))
+        return 0;
+
+    subpix_grad_x = max_f * norm_dir_x;
+    subpix_grad_y = max_f * norm_dir_y;
+    return std::sqrt(subpix_grad_x*subpix_grad_x + subpix_grad_y*subpix_grad_y);
+}
+
+template<typename T>
+int ThirdOrderEdgeDetectionGPU<T>::build_edge_list(T* TOED_edges)
+{
+    edge_pt_list_idx = 0;
+    for (int i = 0; i < interp_img_height; i++) {
+        for (int j = 0; j < interp_img_width; j++) {
+            if (subpix_pos_x_map(i, j) != 0) {
+                subpix_grad_mag_map(i, j) = compute_subpix_grad_mag_at(i, j);
+
+                subpix_edge_pts_final(edge_pt_list_idx, 0) = (subpix_pos_x_map(i, j) - 1) / 2;
+                subpix_edge_pts_final(edge_pt_list_idx, 1) = (subpix_pos_y_map(i, j) - 1) / 2;
+                subpix_edge_pts_final(edge_pt_list_idx, 2) = I_orient(i, j);
+                subpix_edge_pts_final(edge_pt_list_idx, 3) = subpix_grad_mag_map(i, j);
+
+                if (TOED_edges != nullptr) {
+                    TOED_edges(edge_pt_list_idx, 0) = subpix_edge_pts_final(edge_pt_list_idx, 0);
+                    TOED_edges(edge_pt_list_idx, 1) = subpix_edge_pts_final(edge_pt_list_idx, 1);
+                    TOED_edges(edge_pt_list_idx, 2) = subpix_edge_pts_final(edge_pt_list_idx, 2);
+                    TOED_edges(edge_pt_list_idx, 3) = subpix_edge_pts_final(edge_pt_list_idx, 3);
+                }
+                edge_pt_list_idx++;
+            }
+        }
+    }
+    return edge_pt_list_idx;
 }
 
 template<typename T>
@@ -292,15 +409,8 @@ void ThirdOrderEdgeDetectionGPU<T>::convolve_img()
 }
 
 template<typename T>
-void ThirdOrderEdgeDetectionGPU<T>::non_maximum_suppresion()
+int ThirdOrderEdgeDetectionGPU<T>::non_maximum_suppresion(T* TOED_edges)
 {
-    T norm_dir_x, norm_dir_y;
-    T slope, fp, fm;
-    T coeff_A, coeff_B, coeff_C, s, s_star;
-    T max_f, subpix_grad_x, subpix_grad_y;
-    T candidate_edge_pt_x, candidate_edge_pt_y;
-    T subpix_grad_mag;
-
 	cudacheck( cudaEventRecord(start) );
 
     gpu_nms( device_id, interp_img_height, interp_img_width, dev_Ix, dev_Iy, dev_I_grad_mag, 
@@ -320,6 +430,10 @@ void ThirdOrderEdgeDetectionGPU<T>::non_maximum_suppresion()
     write_array_to_file("subpix_pos_x_map_gpu.txt", subpix_pos_x_map, interp_img_height, interp_img_width);
     write_array_to_file("subpix_pos_y_map_gpu.txt", subpix_pos_y_map, interp_img_height, interp_img_width);
     #endif
+
+    int edge_num = build_edge_list(TOED_edges);
+    write_array_to_file("data_final_output_gpu.txt", subpix_edge_pts_final, edge_num, num_of_edge_data);
+    return edge_num;
 }
 
 // ===================================== Write data to file for debugging =======================================
@@ -331,7 +445,7 @@ void ThirdOrderEdgeDetectionGPU<T>::write_array_to_file(std::string filename, T 
 #define wr_data(i, j) wr_data[(i) * second_dim + (j)]
 
     std::cout<<"writing data to a file "<<filename<<" ..."<<std::endl;
-    std::string out_file_name = "./test_files/";
+    std::string out_file_name = "./output_files/";
     out_file_name.append(filename);
 	std::ofstream out_file;
     out_file.open(out_file_name);
@@ -394,6 +508,8 @@ ThirdOrderEdgeDetectionGPU<T>::~ThirdOrderEdgeDetectionGPU () {
 
     delete[] subpix_pos_x_map;
     delete[] subpix_pos_y_map;
+    delete[] subpix_grad_mag_map;
+    delete[] subpix_edge_pts_final;
 
     // free memory gpu
     cudacheck( cudaFree(dev_img) );
@@ -410,6 +526,9 @@ ThirdOrderEdgeDetectionGPU<T>::~ThirdOrderEdgeDetectionGPU () {
     cudacheck( cudaFree(dev_Gxx_sh) );
     cudacheck( cudaFree(dev_Gxxx_sh) );
     cudacheck( cudaFree(dev_G_of_x_sh) );
+
+    cudacheck( cudaFree(dev_subpix_pos_x_map) );
+    cudacheck( cudaFree(dev_subpix_pos_y_map) );
 
     cudacheck( cudaEventDestroy(start) );
     cudacheck( cudaEventDestroy(stop) );

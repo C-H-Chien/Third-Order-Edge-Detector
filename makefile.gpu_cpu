@@ -1,5 +1,7 @@
-CUDADIR ?= /gpfs/runtime/opt/cuda/11.8.1/cuda
-OPENCVDIR ?= /gpfs/data/bkimia/cchien3/opencv_install_CH_test
+#> Brown University CCV Oscars paths for CUDA and OpenCV
+#  (Paths from: module show cuda/12.9.0-cinr and module show opencv/4.6.0s-22w7)
+CUDADIR ?= /oscar/rt/9.6/25/spack/x86_64_v3/cuda-12.9.0-cinrl2oeqemd3szbcakkugp2vtk2fh5t
+OPENCVDIR ?= /oscar/rt/sw/external/opencv/4.6.0
 INC=-I${CUDADIR}/include -I${OPENCVDIR}/include/opencv4
 LIBDIR=-L${CUDADIR}/lib64 -L${OPENCVDIR}/lib64
 LIB=-lcudart -lopencv_core -lopencv_imgcodecs -lopencv_highgui

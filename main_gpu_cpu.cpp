@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 	int sigma = 2;
 
     // ==================================== THIRD-ORDER EDGE DETECTOR STARTS HERE ===============================================
-	int edge_num;
+	int edge_num_cpu, edge_num_gpu;
     if ( !Use_Double_Precision && !Use_Single_Precision ) { 
         std::cout << "You must choose either single or double precision in indices.hpp file!" << std::endl; 
         exit(1);
@@ -111,7 +111,8 @@ int main(int argc, char **argv)
         toedCPU_fp64.preprocessing(infile);
 #endif
         toedCPU_fp64.convolve_img();
-        edge_num = toedCPU_fp64.non_maximum_suppresion(TOED_edges);
+        edge_num_cpu = toedCPU_fp64.non_maximum_suppresion(TOED_edges);
+        std::cout << "Number of CPU edges = " << edge_num_cpu << std::endl;
 
         // go back to the beginning of the file
 #if OPENCV_SUPPORT
@@ -121,16 +122,17 @@ int main(int argc, char **argv)
         infile >> type >> width >> height >> intensity;
 #endif
 
-//         printf("\n ==> GPU Test \n");
-//         printf("=============================================\n");
-//         ThirdOrderEdgeDetectionGPU<double> toedGPU_fp64(gpu_id, height, width, kernel_size, sigma);  // -- class constructor --
-// #if OPENCV_SUPPORT
-//         toedGPU_fp64.preprocessing(img);
-// #else
-//         toedGPU_fp64.preprocessing(infile);
-// #endif
-//         toedGPU_fp64.convolve_img();           // -- convolve image with Gaussian derivative filter --
-//         toedGPU_fp64.non_maximum_suppresion();
+        printf("\n ==> GPU Test \n");
+        printf("=============================================\n");
+        ThirdOrderEdgeDetectionGPU<double> toedGPU_fp64(gpu_id, height, width, kernel_size, sigma);  // -- class constructor --
+#if OPENCV_SUPPORT
+        toedGPU_fp64.preprocessing(img);
+#else
+        toedGPU_fp64.preprocessing(infile);
+#endif
+        toedGPU_fp64.convolve_img();           // -- convolve image with Gaussian derivative filter --
+        edge_num_gpu = toedGPU_fp64.non_maximum_suppresion(TOED_edges);
+        std::cout << "Number of GPU edges = " << edge_num_gpu << std::endl;
 
         //> Double precision allows curve formation
 #if CurvelFormation
@@ -194,7 +196,8 @@ int main(int argc, char **argv)
         toedCPU_fp32.preprocessing(infile);
 #endif
         toedCPU_fp32.convolve_img();
-        edge_num = toedCPU_fp32.non_maximum_suppresion(TOED_edges);
+        edge_num_cpu = toedCPU_fp32.non_maximum_suppresion(TOED_edges);
+        std::cout << "Number of CPU edges = " << edge_num_cpu << std::endl;
 
 #if OPENCV_SUPPORT
 #else
@@ -213,7 +216,8 @@ int main(int argc, char **argv)
         toedGPU_fp32.preprocessing(infile);            // -- preprocessing: array initialization --
 #endif
         toedGPU_fp32.convolve_img();           // -- convolve image with Gaussian derivative filter --
-        toedGPU_fp32.non_maximum_suppresion();
+        edge_num_gpu = toedGPU_fp32.non_maximum_suppresion(TOED_edges);
+        std::cout << "Number of GPU edges = " << edge_num_gpu << std::endl;
 
         delete[] TOED_edges;
     }
