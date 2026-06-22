@@ -5,7 +5,7 @@
 #define OPENCV_SUPPORT                      (true)
 
 // Enable Curvel Formation (only viable for double precision)
-#define CurvelFormation                     (false)
+#define CurvelFormation                     (true)
 
 //> Some settings
 #define Use_Double_Precision                (false)

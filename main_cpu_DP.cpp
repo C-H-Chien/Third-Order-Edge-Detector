@@ -19,7 +19,8 @@
 
 #if CurvelFormation
 #include "curvelet/Array.hpp"
-#include "curvelet/form_curvelet_main.hpp"
+#include "curvelet/curvelet_utils.hpp"
+#include "curvelet/form_curvelet_process.hpp"
 #endif
 
 #if OPENCV_SUPPORT
@@ -39,6 +40,64 @@ void initialize_TOED_edges( T* &TOED_edges, int height, int width )
             TOED_edges(i, j)  = 0;
         }
     }
+}
+
+template<typename T>
+void _write_array_to_file(std::string filename, T *wr_data, int first_dim, int second_dim)
+{
+#define wr_data(i, j) wr_data[(i) * second_dim + (j)]
+
+    std::cout << "writing data to a file " << filename << " ..." << std::endl;
+    if (wr_data == nullptr || first_dim <= 0 || second_dim <= 0) {
+        std::cout << "write data file skipped: invalid buffer or dimensions." << std::endl;
+        return;
+    }
+
+    std::string out_file_name = "./output_files/";
+    out_file_name.append(filename);
+    std::ofstream out_file(out_file_name);
+    if (!out_file.is_open()) {
+        std::cout << "write data file cannot be opened!" << std::endl;
+        return;
+    }
+
+    for (int i = 0; i < first_dim; i++) {
+        for (int j = 0; j < second_dim; j++) {
+            out_file << wr_data(i, j) << "\t";
+        }
+        out_file << "\n";
+    }
+
+    out_file.close();
+#undef wr_data
+}
+
+// Array / MATLAB column-major layout used by curvelet outputs
+template<typename T>
+void _write_array_to_file_colmajor(std::string filename, T *wr_data, int first_dim, int second_dim)
+{
+    std::cout << "writing data to a file " << filename << " ..." << std::endl;
+    if (wr_data == nullptr || first_dim <= 0 || second_dim <= 0) {
+        std::cout << "write data file skipped: invalid buffer or dimensions." << std::endl;
+        return;
+    }
+
+    std::string out_file_name = "./output_files/";
+    out_file_name.append(filename);
+    std::ofstream out_file(out_file_name);
+    if (!out_file.is_open()) {
+        std::cout << "write data file cannot be opened!" << std::endl;
+        return;
+    }
+
+    for (int i = 0; i < first_dim; i++) {
+        for (int j = 0; j < second_dim; j++) {
+            out_file << wr_data[i + first_dim * j] << "\t";
+        }
+        out_file << "\n";
+    }
+
+    out_file.close();
 }
 
 //------------------------------------------------------------------------------
@@ -104,32 +163,82 @@ int main(int argc, char **argv)
 
 #if CurvelFormation
 
-    // -- settings --
+    // -- settings (match curvelet_construction/main.cpp) --
+    const int edge_data_sz = 4;
     double nrad = 3.5;
     double gap = 1.5;
     double dx = 0.4;
-    double dt = 15;
+    double dt = (15.0 / 180.0) * M_PI;
     double token_len = 1;
     double max_k = 0.3;
-    unsigned cvlet_style = 2;
+    unsigned curvelet_style = 2;   // anchor-leading bidirectional
     unsigned max_size_to_group = 4;
     //> when output_type is 0, output the curvelet map
     //  when output_type is 1, output the curve fragment graph
     //  when output_type is 2, output the poly arc map
     unsigned output_type = 0;
 
+    // form_curvelet_process expects column-major edgeinfo (same as curvelet_construction/main.cpp)
+    double *TOED_edges_cm = new double[edge_num * edge_data_sz];
+    for (int i = 0; i < edge_num; i++) {
+        for (int j = 0; j < edge_data_sz; j++) {
+            TOED_edges_cm[j * edge_num + i] = TOED_edges[i * edge_data_sz + j];
+        }
+    }
+
+    arrayd edgeinfo;
+    edgeinfo._data = TOED_edges_cm;
+    edgeinfo.set_h(edge_num);
+    edgeinfo.set_w(edge_data_sz);
+
+    unsigned cvlet_type = curvelet_style;
+    bool bCentered_grouping = cvlet_type == 0 || cvlet_type == 1;
+    bool bBidirectional_grouping = cvlet_type == 0 || cvlet_type == 2;
+
+    form_curvelet_process curvelet_pro(edgeinfo, unsigned(height), unsigned(width),
+                                       nrad, gap, dx, dt, token_len, max_k,
+                                       max_size_to_group,
+                                       bCentered_grouping, bBidirectional_grouping);
+    curvelet_pro.execute();
+
+    unsigned out_h, out_w, info_w;
+    curvelet_pro.get_output_size(out_h, out_w, output_type);
+
+    int *out_chain = new int[out_h * out_w];
+    if (output_type == 0)
+        info_w = 10;
+    else if (output_type == 1)
+        info_w = 1;
+    else
+        info_w = 12;
+    double *out_info = new double[out_h * info_w];
+
     arrayi chain;
+    chain._data = out_chain;
+    chain.set_h(out_h);
+    chain.set_w(out_w);
     arrayd info;
+    info._data = out_info;
+    info.set_h(out_h);
+    info.set_w(info_w);
 
-    //> convert degree to radian
-    dt = (dt / 180) * M_PI;
+    curvelet_pro.get_output_arrary(chain, info, output_type);
 
-    curvelet_formation( chain, info, height, width, TOED_edges, edge_num, 4, 
-                        nrad, gap, dx, dt, token_len, max_k, 
-                        cvlet_style, max_size_to_group, output_type);
-
+    std::cout << "(out_h, out_w) = (" << out_h << ", " << out_w << ")" << std::endl;
     std::cout << "chain width and height: " << chain.w() << ", " << chain.h() << std::endl;
     std::cout << "info width and height: " << info.w() << ", " << info.h() << std::endl;
+
+    delete[] TOED_edges_cm;
+
+#endif
+
+    //> save the third-order edges to a file
+    toedCPU_fp64.write_array_to_file("TOED_edges.txt", TOED_edges, edge_num, 4);
+#if CurvelFormation
+    _write_array_to_file_colmajor("chain.txt", chain._data, chain.h(), chain.w());
+    _write_array_to_file_colmajor("info.txt", info._data, info.h(), info.w());
+    delete[] out_chain;
+    delete[] out_info;
 #endif
 
     delete[] TOED_edges;

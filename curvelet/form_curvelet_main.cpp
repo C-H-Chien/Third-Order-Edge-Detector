@@ -68,9 +68,16 @@ void curvelet_formation( /* OUTPUTS */
     opts.cvlet_style, opts.max_size_to_group, opts.output_type);
     */
 
-    // construct and assign the subpixel edge list
+    // form_curvelet_process expects column-major edgeinfo (MATLAB / Array layout)
+    double *TOED_edges_cm = new double[edge_num * edge_data_sz];
+    for (int i = 0; i < edge_num; i++) {
+        for (int j = 0; j < edge_data_sz; j++) {
+            TOED_edges_cm[j * edge_num + i] = TOED_edges[i * edge_data_sz + j];
+        }
+    }
+
     arrayd edgeinfo; 
-    edgeinfo._data = TOED_edges;
+    edgeinfo._data = TOED_edges_cm;
     
     int h = edge_num; 
     edgeinfo.set_h(h);
@@ -130,7 +137,7 @@ void curvelet_formation( /* OUTPUTS */
 
     std::cout << "info width and height: " << info.h() << ", " << info.w() << std::endl;
 
-
+    delete[] TOED_edges_cm;
     delete[] out_info;
     delete[] out_chain;
 }

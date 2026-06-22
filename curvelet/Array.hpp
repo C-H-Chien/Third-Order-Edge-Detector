@@ -32,6 +32,33 @@ public:
         }
     }
 
+    Array& operator=( const Array &A )
+    {
+        if (this == &A)
+            return *this;
+
+        clear();
+        _h = A.h();
+        _w = A.w();
+
+        if (_h == 0 || _w == 0 || A._data == 0) {
+            _data = 0;
+            _free = false;
+            return *this;
+        }
+
+        _data = new T[_h * _w]();
+        _free = true;
+
+        for (unsigned r = 0; r < _h; r++) {
+            for (unsigned c = 0; c < _w; c++) {
+                _data[c*_h+r] = A.val(r,c);
+            }
+        }
+
+        return *this;
+    }
+
     // virutal destructor to ensure that both destructors of ref_count and Array classes are called properly
     virtual ~Array() { clear(); }
 

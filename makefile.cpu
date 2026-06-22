@@ -4,11 +4,13 @@ LIBDIR=-L${OPENCVDIR}/lib64
 LIB=-lopencv_core -lopencv_imgcodecs -lopencv_highgui
 OPENMP = -fopenmp
 
-toed_cpu: main_cpu_dp.o cpu_toed.o form_curvelet_main.o
-	g++ ${INC} ${OPENMP} -o TOED main_cpu_dp.o cpu_toed.o form_curvelet_main.o ${LIBDIR} ${LIB}
+CURVELET_INC=-I./curvelet
+
+toed_cpu: main_cpu_dp.o cpu_toed.o
+	g++ ${INC} ${OPENMP} -o TOED main_cpu_dp.o cpu_toed.o ${LIBDIR} ${LIB}
 
 main_cpu_dp.o: main_cpu_DP.cpp
-	g++ ${INC} ${OPENMP} -c main_cpu_DP.cpp -O3 -o main_cpu_dp.o
+	g++ ${INC} ${CURVELET_INC} ${OPENMP} -c main_cpu_DP.cpp -O3 -o main_cpu_dp.o
 
 cpu_toed.o: cpu_toed.cpp
 	g++ ${INC} ${OPENMP} -c cpu_toed.cpp -O3 -o cpu_toed.o
