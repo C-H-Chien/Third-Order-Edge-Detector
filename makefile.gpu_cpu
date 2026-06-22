@@ -7,16 +7,33 @@ LIBDIR=-L${CUDADIR}/lib64 -L${OPENCVDIR}/lib64
 LIB=-lcudart -lopencv_core -lopencv_imgcodecs -lopencv_highgui
 
 OPENMP = -fopenmp
+CURVELET_INC=-I./curvelet
+
+# Auto-detect GPU compute capability via nvidia-smi (e.g. "8.0" -> 80).
+# Override: make CUDA_ARCH=90
+# Force multiple: make CUDA_ARCHS="80 90"
+ifndef CUDA_ARCHS
+  ifneq ($(CUDA_ARCH),)
+    CUDA_ARCHS := $(CUDA_ARCH)
+  else
+    CUDA_ARCHS := $(shell nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | tr -d ' ' | sed 's/\.//g' | sort -u | tr '\n' ' ')
+  endif
+endif
+ifeq ($(strip $(CUDA_ARCHS)),)
+  CUDA_ARCHS := 80
+  $(warning CUDA_ARCHS not detected (no GPU visible?). Defaulting to sm_80. Set CUDA_ARCH=XX to override.)
+endif
 
 NVCCFLAGS  = -O3  -Xcompiler "-fPIC -Wall -Wno-unused-function -Wno-strict-aliasing" -std=c++11
-NVCCFLAGS += -gencode arch=compute_70,code=sm_70
-NVCCFLAGS += -gencode arch=compute_80,code=sm_80
+NVCCFLAGS += $(foreach arch,$(CUDA_ARCHS),-gencode arch=compute_$(arch),code=sm_$(arch))
 
-toed_gpu_cpu: main_gpu_cpu.o cpu_toed.o gpu_convolve.o gpu_nms.o form_curvelet_main.o
-	g++ ${INC} ${OPENMP} -o TOED main_gpu_cpu.o cpu_toed.o gpu_convolve.o gpu_nms.o form_curvelet_main.o ${LIBDIR} ${LIB}
+$(info Building for CUDA arch(s): $(CUDA_ARCHS))
+
+toed_gpu_cpu: main_gpu_cpu.o cpu_toed.o gpu_convolve.o gpu_nms.o
+	g++ ${INC} ${OPENMP} -o TOED main_gpu_cpu.o cpu_toed.o gpu_convolve.o gpu_nms.o ${LIBDIR} ${LIB}
 
 main_gpu_cpu.o: main_gpu_cpu.cpp
-	g++ ${INC} ${OPENMP} -c main_gpu_cpu.cpp -O3 -o main_gpu_cpu.o
+	g++ ${INC} ${CURVELET_INC} ${OPENMP} -c main_gpu_cpu.cpp -O3 -o main_gpu_cpu.o
 
 cpu_toed.o: cpu_toed.cpp
 	g++ ${INC} ${OPENMP} -c cpu_toed.cpp -O3 -o cpu_toed.o
