@@ -43,11 +43,11 @@ $ ./TOED ./input_images/euroc_sample_img.png 4
 ```
 You can clear out all the ``*.o`` files by
 ```bash
-$ make -f makefile.gpu_cpu clean
+$ make clean
 ```
 
 ### :tv: Display edges and orientations
-After a successful run, lists of subpixel edges are written in text files named ``data_final_output_cpu.txt`` under `./output_files/`. You can use the matlab file in `./draw_edges_by_matlab/draw_edges_from_list.m` to plot the edges of the input image, or `./draw_edges_by_matlab/draw_edges_orient_from_list.m` to plot the edges and their orientations of the input image.
+After a successful run, lists of subpixel edges are written in text files named ``data_final_output_cpu.txt`` under `./output_files/`. You can use the matlab file in `./MATLAB/draw_edges_from_list.m` to plot the edges of the input image, or `./MATLAB/draw_edges_orient_from_list.m` to plot the edges and their orientations of the input image.
 
 ## MATLAB Code
 The MATLAB code resides in the ``MATLAB`` folder. The ``main.m`` code contains both the third-order edge detection and curvelet (curvel) extraction, with additional example code for visualization. 
