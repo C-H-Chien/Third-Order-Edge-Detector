@@ -31,23 +31,32 @@ $ make -f makefile.gpu_cpu  // or make -f makefile.cpu (for CPU-only version)
 Make sure you have changed the paths for CUDA, OpenCV, etc. in the makefiles. Once everything works perfectly, proceed to execute the code by
 - For GPU+CPU
 ```bash
-$ ./TOED <name_of_input_image> <number of CPU threads> <gpu id>
+$ ./TOED <name_of_input_image> <number of CPU threads> <gpu id> <output_dir>
 ```
 - For CPU only:
 ```bash
-$ ./TOED <name_of_input_image> <number of CPU threads>
+$ ./TOED <name_of_input_image> <number of CPU threads> <output_dir>
 ```
-The argument ``<name_of_input_image>`` is mandatory while the rest are optional. If OpenCV is supported, any type of images should be supported. Otherwise, only `.pgm` image file is accepted. A few sample images are provided in `./input_images/`, so you can, for example, run the code using:
+The argument ``<name_of_input_image>`` is mandatory while the rest are optional (default output directory is ``./output_files``). If OpenCV is supported, any type of images should be supported. Otherwise, only `.pgm` image file is accepted. A few sample images are provided in `./input_images/`, so you can, for example, run the code using:
 ```bash
-$ ./TOED ./input_images/euroc_sample_img.png 4
+$ ./TOED ./input_images/euroc_sample_img.png 4 0 ./output_files/
 ```
 You can clear out all the ``*.o`` files by
 ```bash
 $ make clean
 ```
+Note that there is also a curvelet construction code following the third-order edge detection, which is by default turned off (see the setting `CurvelFormation` in `indices.hpp`).
+
+### :warning: Building GPU code is GPU architecture sensitive
+On running GPU code, if you have built the code successfully but at some points you switch to a different GPU, the GPU kernels may be built for different GPU architecture. In this case, force a clean rebuild:
+```bash
+make -f makefile.gpu_cpu clean
+make -f makefile.gpu_cpu
+```
+You should see `nvcc` recompile the `.cu` files.
 
 ### :tv: Display edges and orientations
-After a successful run, lists of subpixel edges are written in text files named ``data_final_output_cpu.txt`` under `./output_files/`. You can use the matlab file in `./MATLAB/draw_edges_from_list.m` to plot the edges of the input image, or `./MATLAB/draw_edges_orient_from_list.m` to plot the edges and their orientations of the input image.
+After a successful run, lists of subpixel edges are written in text files named ``data_final_output_cpu.txt`` if running the CPU version, or `data_final_output_gpu` if running the GPU version, under the specified output directory (default ``./output_files/``). You can use the matlab file in `./MATLAB/draw_edges_from_list.m` to plot the edges of the input image, or `./MATLAB/draw_edges_orient_from_list.m` to plot the edges and their orientations of the input image.
 
 ## MATLAB Code
 The MATLAB code resides in the ``MATLAB`` folder. The ``main.m`` code contains both the third-order edge detection and curvelet (curvel) extraction, with additional example code for visualization. 
