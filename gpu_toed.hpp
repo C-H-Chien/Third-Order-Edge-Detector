@@ -5,6 +5,7 @@
 #include <math.h>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <string.h>
 #include <vector>
 #include <cuda_runtime.h>
@@ -42,6 +43,7 @@ class ThirdOrderEdgeDetectionGPU {
     T *subpix_pos_y_map, *dev_subpix_pos_y_map;         // -- store y of subpixel location --
     T *subpix_grad_mag_map;
     T *subpix_edge_pts_final;
+    std::string output_dir;
 
     int build_edge_list(T* TOED_edges);
     T compute_subpix_grad_mag_at(int i, int j);
@@ -65,6 +67,7 @@ class ThirdOrderEdgeDetectionGPU {
     void preprocessing(std::ifstream& scan_infile);
     void convolve_img();
     int non_maximum_suppresion(T* TOED_edges = nullptr);
+    void set_output_dir(const std::string& dir);
 
     void read_array_from_file(std::string filename, T *rd_data, int first_dim, int second_dim);
     void write_array_to_file(std::string filename, T *wr_data, int first_dim, int second_dim);
@@ -78,6 +81,7 @@ ThirdOrderEdgeDetectionGPU<T>::ThirdOrderEdgeDetectionGPU (int device, int H, in
     device_id = device;
     img_height = H;
     img_width = W;
+    output_dir = "./output_files";
 
     kernel_sz = kernel_size;
     shifted_kernel_sz = kernel_sz + 2;
@@ -436,6 +440,12 @@ int ThirdOrderEdgeDetectionGPU<T>::non_maximum_suppresion(T* TOED_edges)
     return edge_num;
 }
 
+template<typename T>
+void ThirdOrderEdgeDetectionGPU<T>::set_output_dir(const std::string& dir)
+{
+    output_dir = dir.empty() ? "./output_files" : dir;
+}
+
 // ===================================== Write data to file for debugging =======================================
 // Writes a 2d dybamically allocated array to a text file for debugging
 // ==============================================================================================================
@@ -445,13 +455,17 @@ void ThirdOrderEdgeDetectionGPU<T>::write_array_to_file(std::string filename, T 
 #define wr_data(i, j) wr_data[(i) * second_dim + (j)]
 
     std::cout<<"writing data to a file "<<filename<<" ..."<<std::endl;
-    std::string out_file_name = "./output_files/";
+    std::string out_file_name = output_dir;
+    if (!out_file_name.empty() && out_file_name.back() != '/')
+        out_file_name.push_back('/');
     out_file_name.append(filename);
 	std::ofstream out_file;
     out_file.open(out_file_name);
     if ( !out_file.is_open() )
       std::cout<<"write data file cannot be opened!"<<std::endl;
 
+    //> set precision to 10 decimal places
+    out_file.precision(10);
 	for (int i = 0; i < first_dim; i++) {
 		for (int j = 0; j < second_dim; j++) {
 			out_file << wr_data(i, j) <<"\t";

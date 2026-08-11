@@ -5,6 +5,7 @@
 #include <math.h>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <string.h>
 #include <vector>
 
@@ -32,6 +33,7 @@ class ThirdOrderEdgeDetectionCPU {
     T *subpix_pos_x_map;         // -- store x of subpixel location --
     T *subpix_pos_y_map;         // -- store y of subpixel location --
     T *subpix_grad_mag_map;      // -- store subpixel gradient magnitude --
+    std::string output_dir;
 
   public:
 
@@ -53,6 +55,7 @@ class ThirdOrderEdgeDetectionCPU {
 #endif
     void convolve_img();
     int non_maximum_suppresion(T* TOED_edges);
+    void set_output_dir(const std::string& dir);
 
     void read_array_from_file(std::string filename, T *rd_data, int first_dim, int second_dim);
     void write_array_to_file(std::string filename, T *wr_data, int first_dim, int second_dim);

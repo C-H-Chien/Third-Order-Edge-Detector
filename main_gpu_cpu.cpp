@@ -7,9 +7,12 @@
 #include <fstream>
 #include <iterator>
 #include <iostream>
+#include <string>
 #include <string.h>
 #include <vector>
 #include <stdint.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include "indices.hpp"
 
@@ -32,6 +35,24 @@
 //------------------------------------------------------------------------------
 // TODO: add CPU-GPU error checking code
 
+static bool mkdir_p(const std::string& path)
+{
+    if (path.empty() || path == "." || path == "/")
+        return true;
+
+    struct stat st;
+    if (stat(path.c_str(), &st) == 0)
+        return S_ISDIR(st.st_mode);
+
+    size_t pos = path.find_last_of('/');
+    if (pos != std::string::npos && pos > 0) {
+        if (!mkdir_p(path.substr(0, pos)))
+            return false;
+    }
+
+    return (mkdir(path.c_str(), 0755) == 0) || (errno == EEXIST);
+}
+
 template<typename T>
 void initialize_TOED_edges( T* &TOED_edges, int height, int width ) 
 {
@@ -46,7 +67,8 @@ void initialize_TOED_edges( T* &TOED_edges, int height, int width )
 
 #if CurvelFormation
 template<typename T>
-void _write_array_to_file_colmajor(std::string filename, T *wr_data, int first_dim, int second_dim)
+void _write_array_to_file_colmajor(std::string filename, T *wr_data, int first_dim, int second_dim,
+                                   const std::string& output_dir)
 {
     std::cout << "writing data to a file " << filename << " ..." << std::endl;
     if (wr_data == nullptr || first_dim <= 0 || second_dim <= 0) {
@@ -54,7 +76,9 @@ void _write_array_to_file_colmajor(std::string filename, T *wr_data, int first_d
         return;
     }
 
-    std::string out_file_name = "./output_files/";
+    std::string out_file_name = output_dir;
+    if (!out_file_name.empty() && out_file_name.back() != '/')
+        out_file_name.push_back('/');
     out_file_name.append(filename);
     std::ofstream out_file(out_file_name);
     if (!out_file.is_open()) {
@@ -76,6 +100,12 @@ void _write_array_to_file_colmajor(std::string filename, T *wr_data, int first_d
 //------------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
+    if (argc < 2) {
+        std::cout << "Usage: " << argv[0]
+                  << " <input_image> [nthreads] [gpu_id] [output_dir]" << std::endl;
+        return 0;
+    }
+
 	// -- Exit if the input image file doesn't open --
 	std::string filename(argv[1]);
 	std::ifstream infile(filename, std::ios::binary);
@@ -112,6 +142,16 @@ int main(int argc, char **argv)
 	    gpu_id = atoi( argv[3] );
 	}
 
+    std::string output_dir = "./output_files";
+    if (argc > 4) {
+        output_dir = argv[4];
+    }
+    if (!mkdir_p(output_dir)) {
+        std::cerr << "Error: failed to create output directory: " << output_dir << std::endl;
+        return 1;
+    }
+    std::cout << "Output directory: " << output_dir << std::endl;
+
 	cudacheck( cudaSetDevice(gpu_id) );
 
 	// -- define parameters (This could be changed to argv input arguments but now let's make it fixed)
@@ -137,6 +177,7 @@ int main(int argc, char **argv)
         printf("============================================\n");
         
         ThirdOrderEdgeDetectionCPU<double> toedCPU_fp64(height, width, sigma, kernel_size, nthreads);
+        toedCPU_fp64.set_output_dir(output_dir);
 #if OPENCV_SUPPORT
         toedCPU_fp64.preprocessing(img);
 #else
@@ -157,6 +198,7 @@ int main(int argc, char **argv)
         printf("\n ==> GPU Test \n");
         printf("=============================================\n");
         ThirdOrderEdgeDetectionGPU<double> toedGPU_fp64(gpu_id, height, width, kernel_size, sigma);  // -- class constructor --
+        toedGPU_fp64.set_output_dir(output_dir);
 #if OPENCV_SUPPORT
         toedGPU_fp64.preprocessing(img);
 #else
@@ -235,8 +277,8 @@ int main(int argc, char **argv)
         std::cout << "chain width and height: " << chain.w() << ", " << chain.h() << std::endl;
         std::cout << "info width and height: " << info.w() << ", " << info.h() << std::endl;
 
-        _write_array_to_file_colmajor("chain.txt", chain._data, chain.h(), chain.w());
-        _write_array_to_file_colmajor("info.txt", info._data, info.h(), info.w());
+        _write_array_to_file_colmajor("chain.txt", chain._data, chain.h(), chain.w(), output_dir);
+        _write_array_to_file_colmajor("info.txt", info._data, info.h(), info.w(), output_dir);
 
         delete[] TOED_edges_cm;
         delete[] out_chain;
@@ -266,6 +308,7 @@ int main(int argc, char **argv)
         printf("=============================================\n");
         
         ThirdOrderEdgeDetectionCPU<float> toedCPU_fp32(height, width, sigma, kernel_size, nthreads);
+        toedCPU_fp32.set_output_dir(output_dir);
 #if OPENCV_SUPPORT
         toedCPU_fp32.preprocessing(img);
 #else
@@ -286,6 +329,7 @@ int main(int argc, char **argv)
         printf("\n ==> GPU Test \n");
         printf("=============================================\n");
         ThirdOrderEdgeDetectionGPU<float> toedGPU_fp32(gpu_id, height, width, kernel_size, sigma);  // -- class constructor --
+        toedGPU_fp32.set_output_dir(output_dir);
 #if OPENCV_SUPPORT
         toedGPU_fp32.preprocessing(img);            // -- preprocessing: array initialization --
 #else

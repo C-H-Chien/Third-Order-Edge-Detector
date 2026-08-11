@@ -5,6 +5,7 @@
 #include <math.h>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <string.h>
 #include <vector>
 
@@ -24,6 +25,7 @@ template<typename T>
 ThirdOrderEdgeDetectionCPU<T>::ThirdOrderEdgeDetectionCPU(int H, int W, int sigma, int kernel_size, int cpu_nthreads) {
     img_height = H;
     img_width = W;
+    output_dir = "./output_files";
 
     kernel_sz = kernel_size;
     shifted_kernel_sz = kernel_sz + 2;
@@ -542,6 +544,12 @@ int ThirdOrderEdgeDetectionCPU<T>::non_maximum_suppresion(T* TOED_edges)
     return edge_pt_list_idx;
 }
 
+template<typename T>
+void ThirdOrderEdgeDetectionCPU<T>::set_output_dir(const std::string& dir)
+{
+    output_dir = dir.empty() ? "./output_files" : dir;
+}
+
 // ===================================== Write data to file for debugging =======================================
 // Writes a 2d dybamically allocated array to a text file for debugging
 // ==============================================================================================================
@@ -551,7 +559,9 @@ void ThirdOrderEdgeDetectionCPU<T>::write_array_to_file(std::string filename, T 
 #define wr_data(i, j) wr_data[(i) * second_dim + (j)]
 
     std::cout<<"writing data to a file "<<filename<<" ..."<<std::endl;
-    std::string out_file_name = "./output_files/";
+    std::string out_file_name = output_dir;
+    if (!out_file_name.empty() && out_file_name.back() != '/')
+        out_file_name.push_back('/');
     out_file_name.append(filename);
 	std::ofstream out_file;
     out_file.open(out_file_name);
