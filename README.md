@@ -56,7 +56,28 @@ make -f makefile.gpu_cpu
 You should see `nvcc` recompile the `.cu` files.
 
 ### :tv: Display edges and orientations
-After a successful run, lists of subpixel edges are written in text files named ``data_final_output_cpu.txt`` if running the CPU version, or `data_final_output_gpu` if running the GPU version, under the specified output directory (default ``./output_files/``). You can use the matlab file in `./MATLAB/draw_edges_from_list.m` to plot the edges of the input image, or `./MATLAB/draw_edges_orient_from_list.m` to plot the edges and their orientations of the input image.
+After a successful run, lists of subpixel edges are written in text files named ``data_final_output_cpu.txt`` if running the CPU version, or `data_final_output_gpu` if running the GPU version, under the specified output directory (default ``./output_files/``). You can use the matlab file in `./MATLAB/draw_edges_from_list.m` to plot the edges of the input image.
+
+## Subpixel Third-Order Correction on a Given Edge Map
+This is a standalone CPU/OpenMP tool that applies subpixel third-order (TO) correction to an existing dense edge map (represented by a probabilitic distribution of edges on an entire image), rather than detecting edges from a raw image. Basically, the process starts with a non-maximum suppression along the given orientation, then third-order orientation correction from Gaussian derivatives of the edge map. If initial orientation is not given, a dense orientation map from the edge map is obtained by using Dollar’s Hessian formula (see [Dollar's paper](https://ieeexplore.ieee.org/abstract/document/6975234)).
+
+### Setup and run
+The code for subpixel TO correction resides in `subpix_TO_correction/`.
+```bash
+$ cd subpix_TO_correction
+$ make                         # or: make -C subpix_TO_correction  from the repo root
+$ ./TO_correct <edgemap> [orientation] [thresh] [sigma] [nthreads] [output_dir]
+```
+Update the OpenCV path in ``subpix_TO_correction/makefile`` if needed. Arguments after ``<edgemap>`` are optional. See `main_subpix_to_correction.cpp` for more information. 
+
+For the inputs, 8-bit images are treated as probabilities in ``[0, 1]`` (divided by 255). For raw floating-point maps, pass a ``.txt`` matrix. Example:
+```bash
+$ ./TO_correct E.png O.txt 0.1 2 4 ./output_files
+```
+
+### Output
+Edgels are written as 0-based pixel coordinates in the same 4-column layout as ``TOED_edges.txt`` (``x``, ``y``, orientation, strength)
+To compare with MATLAB, add 1 to ``x`` and ``y``. The same MATLAB script ``./MATLAB/draw_edges_from_list.m`` enables plotting the edges from ``TO_corrected_edges.txt``.
 
 ## MATLAB Code
 The MATLAB code resides in the ``MATLAB`` folder. The ``main.m`` code contains both the third-order edge detection and curvelet (curvel) extraction, with additional example code for visualization. 
