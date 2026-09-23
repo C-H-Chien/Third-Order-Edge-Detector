@@ -5,25 +5,29 @@ img_ = imread(img_name);
 img_ = double(rgb2gray(img_));
 [img_h, img_w] = size(img_);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Third-Order Edge Detector
-% outputs: [Subpixel_X Subpixel_Y Orientation Confidence]
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Output of TO_edges structure: [Subpixel_X Subpixel_Y Orientation Confidence]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 n = 1;
 sigma = 1;
 thresh = 1;
 
 [TO_edges, ~, ~, ~] = third_order_edge_detector(img_, sigma, n, thresh, 1);
 
+%> (Optional) Save a list of third-order edges as a .edg file
+save_edg("0_colors_edges.edg", TO_edges, size(img_));
+
 %> (Optional) Save a list of third-order edges as a .txt file
-% output_file_path        = "/your/output/file_name.txt";
-% writematrix(TO_edges, output_file_path, 'Delimiter', 'tab');
-    
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%output_file_path = "0_colors_edges.txt";
+%writematrix(TO_edges, output_file_path, 'Delimiter', 'tab');
+
+%%   
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Curvel Formation
 % Outputs: (i) chain: edge id chains of local curve (curvel)
 %          (ii) info: [isForward ref_pt.x() ref_pt.y() ref_theta pt.x() pt.y() theta k length property]
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 opts.nrad = 3.5;
 opts.gap = 1.5;
 opts.dx = 0.4;
