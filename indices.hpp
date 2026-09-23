@@ -5,14 +5,17 @@
 #define OPENCV_SUPPORT                      (true)
 
 // Enable Curvel Formation (only viable for double precision)
-#define CurvelFormation                     (true)
+#define CurvelFormation                     (false)
 
 //> Some settings
-#define Use_Double_Precision                (false)
-#define Use_Single_Precision                (true)
+#define Use_Double_Precision                (true)
+#define Use_Single_Precision                (false)
 
 // Write Data to File Enabler
 #define WriteDataToFile                     (0)
+
+// Write third-order edges as an `.edg` file (EDGE_MAP v3.0)
+#define WriteEdgFile                        (true)
 
 // cpu
 #define img(i,j)                        img[(i) * img_width + (j)]

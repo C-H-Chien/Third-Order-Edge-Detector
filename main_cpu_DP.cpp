@@ -8,6 +8,7 @@
 //                 and it is done on CPU-only using double-precision
 // ======================================================================================
 #include <cmath>
+#include <cstdio>
 #include <fstream>
 #include <iterator>
 #include <iostream>
@@ -125,6 +126,52 @@ void _write_array_to_file_colmajor(std::string filename, T *wr_data, int first_d
     }
 
     out_file.close();
+}
+
+// Save third-order edges as an `.edg` file (matches MATLAB/save_edg.m)
+template<typename T>
+void save_edg(const std::string& filename, T *edg, int edge_cnt, int width, int height,
+              const std::string& output_dir)
+{
+    if (edg == nullptr || edge_cnt < 0) {
+        std::cout << "save_edg skipped: invalid edge buffer." << std::endl;
+        return;
+    }
+
+    std::string out_file_name = output_dir;
+    if (!out_file_name.empty() && out_file_name.back() != '/')
+        out_file_name.push_back('/');
+    out_file_name.append(filename);
+
+    std::cout << "writing .edg file " << out_file_name << " ..." << std::endl;
+    FILE *fid = fopen(out_file_name.c_str(), "w");
+    if (fid == nullptr) {
+        std::cout << "save_edg: cannot open file!" << std::endl;
+        return;
+    }
+
+    // Header (match MATLAB/save_edg.m)
+    fprintf(fid, "# EDGE_MAP v3.0\n");
+    fprintf(fid, "\n");
+    fprintf(fid, "# Format :  [Pixel_Pos]  Pixel_Dir Pixel_Conf  [Sub_Pixel_Pos] Sub_Pixel_Dir Sub_Pixel_Conf Sub_Pixel_Conf \n");
+    fprintf(fid, "\n");
+    fprintf(fid, "WIDTH=%d \n", width);
+    fprintf(fid, "HEIGHT=%d \n", height);
+    fprintf(fid, "EDGE_COUNT=%d \n", edge_cnt);
+    fprintf(fid, "\n\n");
+
+    // Each edge: [x,y,orient,conf] -> pixel + subpixel fields
+    for (int i = 0; i < edge_cnt; i++) {
+        const double x = static_cast<double>(edg[i * 4 + 0]);
+        const double y = static_cast<double>(edg[i * 4 + 1]);
+        const double dir = static_cast<double>(edg[i * 4 + 2]);
+        const double conf = static_cast<double>(edg[i * 4 + 3]);
+        fprintf(fid, "[%d, %d]    %f %f  [%f, %f]  %f %f 0 \n",
+                (int)std::round(x), (int)std::round(y), dir, conf,
+                x, y, dir, conf);
+    }
+
+    fclose(fid);
 }
 
 //------------------------------------------------------------------------------
@@ -278,6 +325,9 @@ int main(int argc, char **argv)
 
     //> save the third-order edges to a file
     toedCPU_fp64.write_array_to_file("TOED_edges.txt", TOED_edges, edge_num, 4);
+#if WriteEdgFile
+    save_edg("TOED_edges.edg", TOED_edges, edge_num, width, height, output_dir);
+#endif
 #if CurvelFormation
     _write_array_to_file_colmajor("chain.txt", chain._data, chain.h(), chain.w(), output_dir);
     _write_array_to_file_colmajor("info.txt", info._data, info.h(), info.w(), output_dir);
