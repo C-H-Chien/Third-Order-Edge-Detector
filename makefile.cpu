@@ -22,4 +22,4 @@ form_curvelet_main.o: ./curvelet/form_curvelet_main.cpp
 #	g++ ${OPENMP} -c ./curvelet/form_curvelet_main.cpp ./curvelet/curvelet.cpp ./curvelet/curveletmap.cpp ./curvelet/CC_curve_model_3d.cpp ./curvelet/form_curvelet_process.cpp -O3 -o form_curvelet_main.o
 
 clean:
-	rm -f toed *.o
+	rm -f TOED *.o
