@@ -10,8 +10,8 @@ function save_edg(filename, edg, dim)
     fprintf(fid, '\n');
 
     %> Write out width and height info in the header
-    fprintf(fid, 'WIDTH=%d \n', dim(1));
-    fprintf(fid, 'HEIGHT=%d \n', dim(2));
+    fprintf(fid, 'WIDTH=%d \n', dim(2));
+    fprintf(fid, 'HEIGHT=%d \n', dim(1));
 
     %> Write out edge count
     edge_cnt = size(edg, 1);
