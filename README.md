@@ -43,7 +43,7 @@ $ ./TOED ./input_images/euroc_sample_img.png 4 0 ./output_files/
 ```
 You can clear out all the ``*.o`` files by
 ```bash
-$ make clean
+$ make -f makefile.{cpu, gpu_cpu} clean
 ```
 Note that there is also a curvelet construction code following the third-order edge detection, which is by default turned off (see the setting `CurvelFormation` in `indices.hpp`).
 
