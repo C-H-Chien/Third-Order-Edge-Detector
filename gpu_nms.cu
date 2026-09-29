@@ -94,7 +94,7 @@ gpu_nms_kernel(
     T subpix_pos_x_map = 0, subpix_pos_y_map = 0;
 
     // -- ignore neglectable gradient magnitude --
-    if (tgrad_mag(i, j) <= 2) return;
+    if (tgrad_mag(i, j) <= toed_cfg::grad_mag_thresh) return;
 
     // -- ignore invalid gradient direction --
     if ( (fabs(tIx(i, j)) < 1e-6) && (fabs(tIy(i, j)) < 1e-6) ) return;

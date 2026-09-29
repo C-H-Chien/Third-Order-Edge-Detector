@@ -1,4 +1,4 @@
-OPENCVDIR ?= /gpfs/data/bkimia/opencv_4.x/build_install/
+OPENCVDIR ?= /oscar/rt/sw/external/opencv/4.6.0
 INC=-I${OPENCVDIR}/include/opencv4
 LIBDIR=-L${OPENCVDIR}/lib64
 LIB=-lopencv_core -lopencv_imgcodecs -lopencv_highgui

@@ -240,7 +240,7 @@ T ThirdOrderEdgeDetectionGPU<T>::compute_subpix_grad_mag_at(int i, int j)
     T coeff_A, coeff_B, coeff_C, s, s_star;
     T max_f, subpix_grad_x, subpix_grad_y;
 
-    if (I_grad_mag(i, j) <= 2)
+    if (I_grad_mag(i, j) <= toed_cfg::grad_mag_thresh)
         return 0;
     if ((std::abs(Ix(i, j)) < 10e-6) && (std::abs(Iy(i, j)) < 10e-6))
         return 0;

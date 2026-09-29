@@ -179,17 +179,17 @@ int main(int argc, char **argv)
 #endif
 
 	// read number of threads if passed through command line
-	int nthreads = 1;
+	int nthreads = toed_cfg::default_nthreads;
 	if(argc > 2) {
 	    nthreads = atoi( argv[2] );
 	}
 
-    int gpu_id = 0;
+    int gpu_id = toed_cfg::default_gpu_id;
 	if(argc > 3) {
 	    gpu_id = atoi( argv[3] );
 	}
 
-    std::string output_dir = "./output_files";
+    std::string output_dir = toed_cfg::default_output_dir;
     if (argc > 4) {
         output_dir = argv[4];
     }
@@ -201,14 +201,18 @@ int main(int argc, char **argv)
 
 	cudacheck( cudaSetDevice(gpu_id) );
 
-	// -- define parameters (This could be changed to argv input arguments but now let's make it fixed)
-	int kernel_size = 17;
-	int sigma = 2;
+	// -- TOED parameters (edit toed_config.hpp) --
+	const int kernel_size = toed_cfg::kernel_size;
+	const int sigma = toed_cfg::sigma;
+    std::cout << "TOED config: sigma=" << sigma
+              << " kernel_size=" << kernel_size
+              << " grad_mag_thresh=" << toed_cfg::grad_mag_thresh
+              << " nms_border=" << toed_cfg::nms_border << std::endl;
 
     // ==================================== THIRD-ORDER EDGE DETECTOR STARTS HERE ===============================================
 	int edge_num_cpu, edge_num_gpu;
     if ( !Use_Double_Precision && !Use_Single_Precision ) { 
-        std::cout << "You must choose either single or double precision in indices.hpp file!" << std::endl; 
+        std::cout << "You must choose either single or double precision in toed_config.hpp!" << std::endl; 
         exit(1);
     }
 
@@ -256,27 +260,27 @@ int main(int argc, char **argv)
         std::cout << "Number of GPU edges = " << edge_num_gpu << std::endl;
 
 #if WriteEdgFile
-        save_edg("TOED_edges_gpu_dp64.edg", TOED_edges, edge_num_gpu, width, height, output_dir);
+        save_edg(toed_cfg::edges_edg_gpu_dp_filename, TOED_edges, edge_num_gpu, width, height, output_dir);
 #endif
 
         //> Double precision allows curve formation (uses GPU edge list in TOED_edges)
 #if CurvelFormation
         const int edge_num = edge_num_gpu;
-        const int edge_data_sz = 4;
+        const int edge_data_sz = toed_cfg::edge_data_sz;
 
-        // -- settings (match curvelet_construction/main.cpp) --
-        double nrad = 3.5;
-        double gap = 1.5;
-        double dx = 0.4;
-        double dt = (15.0 / 180.0) * M_PI;
-        double token_len = 1;
-        double max_k = 0.3;
-        unsigned curvelet_style = 2;   // anchor-leading bidirectional
-        unsigned max_size_to_group = 4;
+        // -- curvelet settings (edit toed_config.hpp) --
+        const double nrad = toed_cfg::curvelet_nrad;
+        const double gap = toed_cfg::curvelet_gap;
+        const double dx = toed_cfg::curvelet_dx;
+        const double dt = toed_cfg::curvelet_dt_rad();
+        const double token_len = toed_cfg::curvelet_token_len;
+        const double max_k = toed_cfg::curvelet_max_k;
+        const unsigned curvelet_style = toed_cfg::curvelet_style;
+        const unsigned max_size_to_group = toed_cfg::curvelet_max_size_to_group;
         //> when output_type is 0, output the curvelet map
         //  when output_type is 1, output the curve fragment graph
         //  when output_type is 2, output the poly arc map
-        unsigned output_type = 0;
+        const unsigned output_type = toed_cfg::curvelet_output_type;
 
         // form_curvelet_process expects column-major edgeinfo (same as curvelet_construction/main.cpp)
         double *TOED_edges_cm = new double[edge_num * edge_data_sz];
@@ -328,8 +332,8 @@ int main(int argc, char **argv)
         std::cout << "chain width and height: " << chain.w() << ", " << chain.h() << std::endl;
         std::cout << "info width and height: " << info.w() << ", " << info.h() << std::endl;
 
-        _write_array_to_file_colmajor("chain.txt", chain._data, chain.h(), chain.w(), output_dir);
-        _write_array_to_file_colmajor("info.txt", info._data, info.h(), info.w(), output_dir);
+        _write_array_to_file_colmajor(toed_cfg::curvelet_chain_filename, chain._data, chain.h(), chain.w(), output_dir);
+        _write_array_to_file_colmajor(toed_cfg::curvelet_info_filename, info._data, info.h(), info.w(), output_dir);
 
         delete[] TOED_edges_cm;
         delete[] out_chain;
@@ -391,7 +395,7 @@ int main(int argc, char **argv)
         std::cout << "Number of GPU edges = " << edge_num_gpu << std::endl;
 
 #if WriteEdgFile
-        save_edg("TOED_edges_gpu_sp32.edg", TOED_edges, edge_num_gpu, width, height, output_dir);
+        save_edg(toed_cfg::edges_edg_gpu_sp_filename, TOED_edges, edge_num_gpu, width, height, output_dir);
 #endif
 
         delete[] TOED_edges;

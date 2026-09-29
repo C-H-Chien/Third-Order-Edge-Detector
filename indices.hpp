@@ -1,21 +1,9 @@
 #ifndef INDICES_HPP
 #define INDICES_HPP
-// macros for flexible axis
+// Indexing macros for CPU / GPU / curvelet arrays.
+// Feature flags and algorithm parameters live in toed_config.hpp.
 
-#define OPENCV_SUPPORT                      (true)
-
-// Enable Curvel Formation (only viable for double precision)
-#define CurvelFormation                     (false)
-
-//> Some settings
-#define Use_Double_Precision                (true)
-#define Use_Single_Precision                (false)
-
-// Write Data to File Enabler
-#define WriteDataToFile                     (0)
-
-// Write third-order edges as an `.edg` file (EDGE_MAP v3.0)
-#define WriteEdgFile                        (true)
+#include "toed_config.hpp"
 
 // cpu
 #define img(i,j)                        img[(i) * img_width + (j)]
@@ -41,7 +29,5 @@
 
 // curvelet
 #define TOED_edges(i, j)                 TOED_edges[(i) * 4 + (j)]
-
-
 
 #endif // INDICES_HPP
